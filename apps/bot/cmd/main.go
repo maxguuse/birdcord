@@ -1,7 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"github.com/maxguuse/birdcord/apps/bot/internal/discord"
+	"go.uber.org/fx"
+)
 
 func main() {
-	fmt.Println("Hello-hello from bot microservice!")
+	fx.New(
+		fx.Invoke(discord.New),
+	).Run()
 }

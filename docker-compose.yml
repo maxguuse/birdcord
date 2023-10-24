@@ -6,6 +6,7 @@ services:
       context: .
       dockerfile: ./Dockerfile
       target: bot
+    env_file: .env
     deploy:
       restart_policy:
         condition: on-failure
