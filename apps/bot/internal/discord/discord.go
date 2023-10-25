@@ -22,15 +22,17 @@ func New(lc fx.Lifecycle) (*Bot, error) {
 		session: s,
 	}
 
-	bot.SetupHandlers()
-	bot.SetupIntents()
-
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			err := s.Open()
 			if err != nil {
 				return fmt.Errorf("error opening connection: %v", err)
 			}
+
+			bot.SetupHandlers()
+			bot.SetupIntents()
+			bot.SetupScommands()
+
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {

@@ -1,3 +1,6 @@
 go 1.21.3
 
-use ./apps/bot
+use (
+	./apps/bot
+	./libs/types
+)
