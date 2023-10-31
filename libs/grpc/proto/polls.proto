@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package polls;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/maxguuse/birdcord/libs/grpc/generated/polls";
+
+service Polls {
+  rpc CreatePoll(CreatePollRequest) returns (CreatePollResponse);
+  rpc GetPolls(google.protobuf.Empty) returns (GetPollsResponse);
+  rpc StopPoll(StopPollRequest) returns (StopPollResponse);
+  rpc Vote(VoteRequest) returns (VoteResponse);
+}
+
+message CreatePollRequest {
+  string title = 1;
+  repeated string options = 2;
+  string discord_token = 3;
+}
+
+message CreatePollResponse {
+  int32 poll_id = 1;
+  repeated Option options = 2;
+}
+
+message VoteRequest {
+  int32 poll_id = 1;
+  int32 option_id = 2;
+  string discord_user_id = 3;
+}
+
+message VoteResponse {
+  string discord_token = 1;
+  repeated Option options = 2;
+  int32 total_votes = 3;
+  string title = 4;
+}
+
+message Option {
+  string title = 1;
+  int32 id = 2;
+  int32 total_votes = 3;
+}
+
+message GetPollsResponse {
+  repeated Poll polls = 1;
+}
+
+message Poll {
+  string title = 1;
+  int32 id = 2;
+}
+
+message StopPollRequest {
+  int32 poll_id = 1;
+}
+
+message StopPollResponse {
+  string discord_token = 1;
+  repeated Option winners = 2;
+  int32 total_votes = 3;
+  string title = 4;
+}

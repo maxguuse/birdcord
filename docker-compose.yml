@@ -1,6 +1,24 @@
 version: "3.9"
 
 services:
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    env_file: .env
+  migrations:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: migrations
+    env_file: .env
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 2
+    depends_on:
+      - db
   bot:
     build:
       context: .
@@ -11,4 +29,19 @@ services:
       restart_policy:
         condition: on-failure
         delay: 5s
-        max_attempts: 30
+        max_attempts: 15
+  polls:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: polls
+    ports:
+      - "50051:50051"
+    env_file: .env
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 15
+    depends_on:
+      - db

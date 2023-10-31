@@ -2,18 +2,17 @@ package discord
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/bot/internal/scommands"
 )
 
 func (b *Bot) SetupHandlers() {
-	b.session.AddHandler(b.onInteractionCreate)
 	b.session.AddHandler(b.onReady)
+	b.session.AddHandler(b.onInteractionCreate)
 }
 
 func (b *Bot) SetupIntents() {
-	b.session.Identify.Intents = discordgo.IntentGuildMessages
+	b.session.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 }
 
 func (b *Bot) SetupScommands() {
-	scommands.Register(b.session)
+	b.polls.Register(b.session)
 }

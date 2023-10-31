@@ -2,5 +2,8 @@ go 1.21.3
 
 use (
 	./apps/bot
-	./libs/types
+	./apps/polls
+	./libs/grpc
+	./libs/migrations
+	./libs/sqlc
 )

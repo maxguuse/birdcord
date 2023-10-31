@@ -1,18 +1,25 @@
 package discord
 
 import (
+	"fmt"
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/bot/internal/scommands"
+	"strings"
 )
 
 func (b *Bot) onInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	fmt.Println(i.Type)
 	switch i.Type {
+	case discordgo.InteractionApplicationCommandAutocomplete:
+		fallthrough
 	case discordgo.InteractionApplicationCommand:
-		if i.ApplicationCommandData().Name == "poll" {
-			scommands.PollCommandHandler(s, i)
-			return
+		switch i.ApplicationCommandData().Name {
+		case "poll":
+			b.polls.Handler(s, i)
 		}
 	case discordgo.InteractionMessageComponent:
-
+		fmt.Println(i.MessageComponentData().CustomID) // poll_25_choice_72
+		if strings.HasPrefix(i.MessageComponentData().CustomID, "poll") {
+			b.polls.Handler(s, i)
+		}
 	}
 }
