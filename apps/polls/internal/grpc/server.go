@@ -3,7 +3,6 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/maxguuse/birdcord/libs/grpc/generated/polls"
 	"github.com/maxguuse/birdcord/libs/sqlc/queries"
 	"go.uber.org/fx"
@@ -63,6 +62,6 @@ func (p PollsServer) Vote(ctx context.Context, request *polls.VoteRequest) (*pol
 	return p.vote(ctx, request)
 }
 
-func (p PollsServer) GetPolls(ctx context.Context, _ *empty.Empty) (*polls.GetPollsResponse, error) {
-	return p.getPolls(ctx)
+func (p PollsServer) GetActivePolls(ctx context.Context, request *polls.GetActivePollsRequest) (*polls.GetActivePollsResponse, error) {
+	return p.getActivePolls(ctx, request)
 }

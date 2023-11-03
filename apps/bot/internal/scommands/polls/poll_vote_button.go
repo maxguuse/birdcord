@@ -18,6 +18,20 @@ func (p *Polls) handleVoteButton(
 		PollId:        v.PollID,
 		OptionId:      v.OptionID,
 	})
+	if !voteResponse.Success {
+		err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Flags:   discordgo.MessageFlagsEphemeral,
+				Content: fmt.Sprintf("Вы уже участвовали в опросе \"%s\"", voteResponse.Title),
+			},
+		})
+		if err != nil {
+			fmt.Println("Error responding to vote interaction:", err)
+		}
+		return
+	}
+
 	if err != nil {
 		fmt.Println("Error voting:", err)
 		return
@@ -40,6 +54,18 @@ func (p *Polls) handleVoteButton(
 	})
 	if err != nil {
 		fmt.Println("Error editing poll:", err)
+		return
+	}
+
+	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Flags:   discordgo.MessageFlagsEphemeral,
+			Content: fmt.Sprintf("Вы проголосовали в опросе \"%s\"", voteResponse.Title),
+		},
+	})
+	if err != nil {
+		fmt.Println("Error responding to vote interaction:", err)
 		return
 	}
 }

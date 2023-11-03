@@ -45,6 +45,11 @@ func (p PollsServer) StopPoll(ctx context.Context, request *polls.StopPollReques
 		return nil, err
 	}
 
+	err = p.qr.StopPoll(ctx, request.PollId)
+	if err != nil {
+		return nil, err
+	}
+
 	return &polls.StopPollResponse{
 		DiscordToken: poll.DiscordToken.String,
 		Winners:      winners,

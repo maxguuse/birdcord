@@ -14,54 +14,59 @@ import (
 const createPoll = `-- name: CreatePoll :one
 INSERT INTO polls (
     title,
-    discord_token
+    discord_token,
+    discord_author_id,
+    discord_guild_id
 ) VALUES (
-    $1, $2
-) RETURNING id, title, discord_token
+    $1, $2, $3, $4
+) RETURNING id, title, discord_token, discord_author_id, discord_guild_id, active
 `
 
 type CreatePollParams struct {
-	Title        pgtype.Text `json:"title"`
-	DiscordToken pgtype.Text `json:"discord_token"`
+	Title           pgtype.Text `json:"title"`
+	DiscordToken    pgtype.Text `json:"discord_token"`
+	DiscordAuthorID pgtype.Text `json:"discord_author_id"`
+	DiscordGuildID  pgtype.Text `json:"discord_guild_id"`
 }
 
 func (q *Queries) CreatePoll(ctx context.Context, arg CreatePollParams) (Poll, error) {
-	row := q.db.QueryRow(ctx, createPoll, arg.Title, arg.DiscordToken)
+	row := q.db.QueryRow(ctx, createPoll,
+		arg.Title,
+		arg.DiscordToken,
+		arg.DiscordAuthorID,
+		arg.DiscordGuildID,
+	)
 	var i Poll
-	err := row.Scan(&i.ID, &i.Title, &i.DiscordToken)
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.DiscordToken,
+		&i.DiscordAuthorID,
+		&i.DiscordGuildID,
+		&i.Active,
+	)
 	return i, err
 }
 
-const getPoll = `-- name: GetPoll :one
-SELECT id, title, discord_token FROM polls
-         WHERE id = $1
-`
-
-func (q *Queries) GetPoll(ctx context.Context, id int32) (Poll, error) {
-	row := q.db.QueryRow(ctx, getPoll, id)
-	var i Poll
-	err := row.Scan(&i.ID, &i.Title, &i.DiscordToken)
-	return i, err
-}
-
-const getPolls = `-- name: GetPolls :many
+const getActivePolls = `-- name: GetActivePolls :many
 SELECT id, title FROM polls
+         WHERE discord_guild_id = $1 AND active = true
 `
 
-type GetPollsRow struct {
+type GetActivePollsRow struct {
 	ID    int32       `json:"id"`
 	Title pgtype.Text `json:"title"`
 }
 
-func (q *Queries) GetPolls(ctx context.Context) ([]GetPollsRow, error) {
-	rows, err := q.db.Query(ctx, getPolls)
+func (q *Queries) GetActivePolls(ctx context.Context, discordGuildID pgtype.Text) ([]GetActivePollsRow, error) {
+	rows, err := q.db.Query(ctx, getActivePolls, discordGuildID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetPollsRow
+	var items []GetActivePollsRow
 	for rows.Next() {
-		var i GetPollsRow
+		var i GetActivePollsRow
 		if err := rows.Scan(&i.ID, &i.Title); err != nil {
 			return nil, err
 		}
@@ -71,6 +76,25 @@ func (q *Queries) GetPolls(ctx context.Context) ([]GetPollsRow, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getPoll = `-- name: GetPoll :one
+SELECT id, title, discord_token, discord_author_id, discord_guild_id, active FROM polls
+         WHERE id = $1
+`
+
+func (q *Queries) GetPoll(ctx context.Context, id int32) (Poll, error) {
+	row := q.db.QueryRow(ctx, getPoll, id)
+	var i Poll
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.DiscordToken,
+		&i.DiscordAuthorID,
+		&i.DiscordGuildID,
+		&i.Active,
+	)
+	return i, err
 }
 
 const getToken = `-- name: GetToken :one
@@ -83,4 +107,15 @@ func (q *Queries) GetToken(ctx context.Context, id int32) (pgtype.Text, error) {
 	var discord_token pgtype.Text
 	err := row.Scan(&discord_token)
 	return discord_token, err
+}
+
+const stopPoll = `-- name: StopPoll :exec
+UPDATE polls
+    SET active = FALSE
+    WHERE id = $1
+`
+
+func (q *Queries) StopPoll(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, stopPoll, id)
+	return err
 }

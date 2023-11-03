@@ -6,7 +6,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/libs/grpc/generated/polls"
 	"github.com/samber/lo"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"os"
 	"strings"
 )
@@ -70,7 +69,9 @@ func (p *Polls) handlePollStop(
 			return
 		}
 	case discordgo.InteractionApplicationCommandAutocomplete:
-		activePolls, err := p.pollsClient.GetPolls(context.Background(), &emptypb.Empty{})
+		activePolls, err := p.pollsClient.GetActivePolls(context.Background(), &polls.GetActivePollsRequest{
+			DiscordGuildId: i.GuildID,
+		})
 		if err != nil {
 			fmt.Println("Error getting active polls:", err)
 			return

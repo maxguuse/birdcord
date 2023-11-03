@@ -16,9 +16,7 @@ services:
       restart_policy:
         condition: on-failure
         delay: 5s
-        max_attempts: 2
-    depends_on:
-      - db
+        max_attempts: 15
   bot:
     build:
       context: .
@@ -43,5 +41,3 @@ services:
         condition: on-failure
         delay: 5s
         max_attempts: 15
-    depends_on:
-      - db

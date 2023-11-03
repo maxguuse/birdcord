@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -24,7 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PollsClient interface {
 	CreatePoll(ctx context.Context, in *CreatePollRequest, opts ...grpc.CallOption) (*CreatePollResponse, error)
-	GetPolls(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetPollsResponse, error)
+	GetActivePolls(ctx context.Context, in *GetActivePollsRequest, opts ...grpc.CallOption) (*GetActivePollsResponse, error)
 	StopPoll(ctx context.Context, in *StopPollRequest, opts ...grpc.CallOption) (*StopPollResponse, error)
 	Vote(ctx context.Context, in *VoteRequest, opts ...grpc.CallOption) (*VoteResponse, error)
 }
@@ -46,9 +45,9 @@ func (c *pollsClient) CreatePoll(ctx context.Context, in *CreatePollRequest, opt
 	return out, nil
 }
 
-func (c *pollsClient) GetPolls(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetPollsResponse, error) {
-	out := new(GetPollsResponse)
-	err := c.cc.Invoke(ctx, "/polls.Polls/GetPolls", in, out, opts...)
+func (c *pollsClient) GetActivePolls(ctx context.Context, in *GetActivePollsRequest, opts ...grpc.CallOption) (*GetActivePollsResponse, error) {
+	out := new(GetActivePollsResponse)
+	err := c.cc.Invoke(ctx, "/polls.Polls/GetActivePolls", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +77,7 @@ func (c *pollsClient) Vote(ctx context.Context, in *VoteRequest, opts ...grpc.Ca
 // for forward compatibility
 type PollsServer interface {
 	CreatePoll(context.Context, *CreatePollRequest) (*CreatePollResponse, error)
-	GetPolls(context.Context, *emptypb.Empty) (*GetPollsResponse, error)
+	GetActivePolls(context.Context, *GetActivePollsRequest) (*GetActivePollsResponse, error)
 	StopPoll(context.Context, *StopPollRequest) (*StopPollResponse, error)
 	Vote(context.Context, *VoteRequest) (*VoteResponse, error)
 	mustEmbedUnimplementedPollsServer()
@@ -91,8 +90,8 @@ type UnimplementedPollsServer struct {
 func (UnimplementedPollsServer) CreatePoll(context.Context, *CreatePollRequest) (*CreatePollResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreatePoll not implemented")
 }
-func (UnimplementedPollsServer) GetPolls(context.Context, *emptypb.Empty) (*GetPollsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPolls not implemented")
+func (UnimplementedPollsServer) GetActivePolls(context.Context, *GetActivePollsRequest) (*GetActivePollsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetActivePolls not implemented")
 }
 func (UnimplementedPollsServer) StopPoll(context.Context, *StopPollRequest) (*StopPollResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StopPoll not implemented")
@@ -131,20 +130,20 @@ func _Polls_CreatePoll_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Polls_GetPolls_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+func _Polls_GetActivePolls_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetActivePollsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PollsServer).GetPolls(ctx, in)
+		return srv.(PollsServer).GetActivePolls(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/polls.Polls/GetPolls",
+		FullMethod: "/polls.Polls/GetActivePolls",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PollsServer).GetPolls(ctx, req.(*emptypb.Empty))
+		return srv.(PollsServer).GetActivePolls(ctx, req.(*GetActivePollsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -197,8 +196,8 @@ var Polls_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Polls_CreatePoll_Handler,
 		},
 		{
-			MethodName: "GetPolls",
-			Handler:    _Polls_GetPolls_Handler,
+			MethodName: "GetActivePolls",
+			Handler:    _Polls_GetActivePolls_Handler,
 		},
 		{
 			MethodName: "StopPoll",

@@ -48,9 +48,11 @@ func (p *Polls) handlePollStart(
 	}
 
 	createPollResponse, err := p.pollsClient.CreatePoll(context.Background(), &polls.CreatePollRequest{
-		Title:        options["title"].StringValue(),
-		Options:      pollOptions,
-		DiscordToken: i.Interaction.Token,
+		Title:           options["title"].StringValue(),
+		Options:         pollOptions,
+		DiscordToken:    i.Interaction.Token,
+		DiscordAuthorId: i.Member.User.ID,
+		DiscordGuildId:  i.GuildID,
 	})
 	if err != nil {
 		fmt.Println("Error creating poll:", err)

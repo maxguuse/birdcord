@@ -8,7 +8,7 @@ option go_package = "github.com/maxguuse/birdcord/libs/grpc/generated/polls";
 
 service Polls {
   rpc CreatePoll(CreatePollRequest) returns (CreatePollResponse);
-  rpc GetPolls(google.protobuf.Empty) returns (GetPollsResponse);
+  rpc GetActivePolls(GetActivePollsRequest) returns (GetActivePollsResponse);
   rpc StopPoll(StopPollRequest) returns (StopPollResponse);
   rpc Vote(VoteRequest) returns (VoteResponse);
 }
@@ -17,6 +17,8 @@ message CreatePollRequest {
   string title = 1;
   repeated string options = 2;
   string discord_token = 3;
+  string discord_author_id = 4;
+  string discord_guild_id = 5;
 }
 
 message CreatePollResponse {
@@ -35,6 +37,7 @@ message VoteResponse {
   repeated Option options = 2;
   int32 total_votes = 3;
   string title = 4;
+  bool success = 5;
 }
 
 message Option {
@@ -43,7 +46,11 @@ message Option {
   int32 total_votes = 3;
 }
 
-message GetPollsResponse {
+message GetActivePollsRequest {
+  string discord_guild_id = 1;
+}
+
+message GetActivePollsResponse {
   repeated Poll polls = 1;
 }
 

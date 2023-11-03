@@ -21,9 +21,17 @@ func (p PollsServer) vote(ctx context.Context, request *polls.VoteRequest) (*pol
 		Valid: true,
 	}
 
-	_, err := p.qr.GetUserByIdForPoll(ctx, getUserByIdForPollParams)
-	if !errors.Is(err, pgx.ErrNoRows) {
+	poll, err := p.qr.GetPoll(ctx, request.PollId)
+	if err != nil {
 		return nil, err
+	}
+
+	_, err = p.qr.GetUserByIdForPoll(ctx, getUserByIdForPollParams)
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return &polls.VoteResponse{
+			Title:   poll.Title.String,
+			Success: false,
+		}, err
 	}
 
 	// If all conditions are met, add user to voted_users table
@@ -69,15 +77,11 @@ func (p PollsServer) vote(ctx context.Context, request *polls.VoteRequest) (*pol
 		totalVotes += option.VoteCount
 	}
 
-	poll, err := p.qr.GetPoll(ctx, request.PollId)
-	if err != nil {
-		return nil, err
-	}
-
 	return &polls.VoteResponse{
 		DiscordToken: token.String,
 		Options:      grpcOptions,
 		TotalVotes:   totalVotes,
 		Title:        poll.Title.String,
+		Success:      true,
 	}, nil
 }

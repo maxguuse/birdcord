@@ -18,6 +18,14 @@ func (p PollsServer) createPoll(ctx context.Context, request *polls.CreatePollRe
 		String: request.DiscordToken,
 		Valid:  true,
 	}
+	createPollParams.DiscordAuthorID = pgtype.Text{
+		String: request.DiscordAuthorId,
+		Valid:  true,
+	}
+	createPollParams.DiscordGuildID = pgtype.Text{
+		String: request.DiscordGuildId,
+		Valid:  true,
+	}
 
 	poll, err := p.qr.CreatePoll(ctx, createPollParams)
 	if err != nil {

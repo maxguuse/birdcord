@@ -17,7 +17,7 @@ func (b *Bot) onInteractionCreate(s *discordgo.Session, i *discordgo.Interaction
 			b.polls.Handler(s, i)
 		}
 	case discordgo.InteractionMessageComponent:
-		fmt.Println(i.MessageComponentData().CustomID) // poll_25_choice_72
+		fmt.Println(i.MessageComponentData().CustomID)
 		if strings.HasPrefix(i.MessageComponentData().CustomID, "poll") {
 			b.polls.Handler(s, i)
 		}
