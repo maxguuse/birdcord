@@ -1,15 +1,12 @@
 -- name: CreatePoll :one
 INSERT INTO polls (
-    title,
-    discord_token,
-    discord_author_id,
-    discord_guild_id
-) VALUES (
-    $1, $2, $3, $4
-) RETURNING *;
+    title, discord_id, discord_author_id, discord_guild_id, channel_id
+)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING *;
 
 -- name: GetToken :one
-SELECT discord_token FROM polls
+SELECT discord_id FROM polls
                      WHERE id = $1;
 
 -- name: GetPoll :one

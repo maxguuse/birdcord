@@ -9,7 +9,6 @@ import (
 
 func main() {
 	fx.New(
-
 		fx.Provide(
 			db.New,
 			queries.New,

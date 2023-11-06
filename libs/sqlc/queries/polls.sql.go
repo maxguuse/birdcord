@@ -13,37 +13,37 @@ import (
 
 const createPoll = `-- name: CreatePoll :one
 INSERT INTO polls (
-    title,
-    discord_token,
-    discord_author_id,
-    discord_guild_id
-) VALUES (
-    $1, $2, $3, $4
-) RETURNING id, title, discord_token, discord_author_id, discord_guild_id, active
+    title, discord_id, discord_author_id, discord_guild_id, channel_id
+)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, title, discord_id, discord_author_id, discord_guild_id, active, channel_id
 `
 
 type CreatePollParams struct {
 	Title           pgtype.Text `json:"title"`
-	DiscordToken    pgtype.Text `json:"discord_token"`
+	DiscordID       pgtype.Text `json:"discord_id"`
 	DiscordAuthorID pgtype.Text `json:"discord_author_id"`
 	DiscordGuildID  pgtype.Text `json:"discord_guild_id"`
+	ChannelID       pgtype.Text `json:"channel_id"`
 }
 
 func (q *Queries) CreatePoll(ctx context.Context, arg CreatePollParams) (Poll, error) {
 	row := q.db.QueryRow(ctx, createPoll,
 		arg.Title,
-		arg.DiscordToken,
+		arg.DiscordID,
 		arg.DiscordAuthorID,
 		arg.DiscordGuildID,
+		arg.ChannelID,
 	)
 	var i Poll
 	err := row.Scan(
 		&i.ID,
 		&i.Title,
-		&i.DiscordToken,
+		&i.DiscordID,
 		&i.DiscordAuthorID,
 		&i.DiscordGuildID,
 		&i.Active,
+		&i.ChannelID,
 	)
 	return i, err
 }
@@ -79,7 +79,7 @@ func (q *Queries) GetActivePolls(ctx context.Context, discordGuildID pgtype.Text
 }
 
 const getPoll = `-- name: GetPoll :one
-SELECT id, title, discord_token, discord_author_id, discord_guild_id, active FROM polls
+SELECT id, title, discord_id, discord_author_id, discord_guild_id, active, channel_id FROM polls
          WHERE id = $1
 `
 
@@ -89,24 +89,25 @@ func (q *Queries) GetPoll(ctx context.Context, id int32) (Poll, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Title,
-		&i.DiscordToken,
+		&i.DiscordID,
 		&i.DiscordAuthorID,
 		&i.DiscordGuildID,
 		&i.Active,
+		&i.ChannelID,
 	)
 	return i, err
 }
 
 const getToken = `-- name: GetToken :one
-SELECT discord_token FROM polls
+SELECT discord_id FROM polls
                      WHERE id = $1
 `
 
 func (q *Queries) GetToken(ctx context.Context, id int32) (pgtype.Text, error) {
 	row := q.db.QueryRow(ctx, getToken, id)
-	var discord_token pgtype.Text
-	err := row.Scan(&discord_token)
-	return discord_token, err
+	var discord_id pgtype.Text
+	err := row.Scan(&discord_id)
+	return discord_id, err
 }
 
 const stopPoll = `-- name: StopPoll :exec

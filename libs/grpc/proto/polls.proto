@@ -16,9 +16,10 @@ service Polls {
 message CreatePollRequest {
   string title = 1;
   repeated string options = 2;
-  string discord_token = 3;
+  string discord_id = 3;
   string discord_author_id = 4;
   string discord_guild_id = 5;
+  string channel_id = 6;
 }
 
 message CreatePollResponse {

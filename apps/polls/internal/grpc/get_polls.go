@@ -26,12 +26,6 @@ func (p PollsServer) getActivePolls(ctx context.Context, request *polls.GetActiv
 		grpcPolls = append(grpcPolls, &grpcPoll)
 	}
 
-	/*TODO Add "active" column to polls table and send only those polls where "active" is true
-	 * 		Set "active" column to false in stopPolls method */
-
-	/*TODO Add "guild_id" column to polls table and send only those polls where "guild_id" is equal to requested guild
-	 */
-
 	return &polls.GetActivePollsResponse{
 		Polls: grpcPolls,
 	}, nil

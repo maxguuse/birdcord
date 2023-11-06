@@ -5,7 +5,6 @@ import (
 )
 
 func (b *Bot) SetupHandlers() {
-	b.session.AddHandler(b.onReady)
 	b.session.AddHandler(b.onInteractionCreate)
 }
 
@@ -14,5 +13,5 @@ func (b *Bot) SetupIntents() {
 }
 
 func (b *Bot) SetupScommands() {
-	b.polls.Register(b.session)
+	b.interactions.Polls.Register(b.session)
 }

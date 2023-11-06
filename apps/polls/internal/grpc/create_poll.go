@@ -14,8 +14,8 @@ func (p PollsServer) createPoll(ctx context.Context, request *polls.CreatePollRe
 		String: request.Title,
 		Valid:  true,
 	}
-	createPollParams.DiscordToken = pgtype.Text{
-		String: request.DiscordToken,
+	createPollParams.DiscordID = pgtype.Text{
+		String: request.DiscordId,
 		Valid:  true,
 	}
 	createPollParams.DiscordAuthorID = pgtype.Text{
@@ -24,6 +24,10 @@ func (p PollsServer) createPoll(ctx context.Context, request *polls.CreatePollRe
 	}
 	createPollParams.DiscordGuildID = pgtype.Text{
 		String: request.DiscordGuildId,
+		Valid:  true,
+	}
+	createPollParams.ChannelID = pgtype.Text{
+		String: request.ChannelId,
 		Valid:  true,
 	}
 

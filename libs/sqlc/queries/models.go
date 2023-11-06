@@ -11,10 +11,11 @@ import (
 type Poll struct {
 	ID              int32       `json:"id"`
 	Title           pgtype.Text `json:"title"`
-	DiscordToken    pgtype.Text `json:"discord_token"`
+	DiscordID       pgtype.Text `json:"discord_id"`
 	DiscordAuthorID pgtype.Text `json:"discord_author_id"`
 	DiscordGuildID  pgtype.Text `json:"discord_guild_id"`
 	Active          pgtype.Bool `json:"active"`
+	ChannelID       pgtype.Text `json:"channel_id"`
 }
 
 type PollsOption struct {

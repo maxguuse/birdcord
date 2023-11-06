@@ -16,7 +16,6 @@ var pollCommand = &discordgo.ApplicationCommand{
 	Name:        "poll",
 	Description: "Управление опросами",
 	Options: []*discordgo.ApplicationCommandOption{
-		pollStartSubcommand,
 		pollStopSubcommand,
 	},
 }
@@ -52,8 +51,6 @@ func (p *Polls) commandHandler(s *discordgo.Session, i *discordgo.InteractionCre
 	options := buildOptionsMap(i.ApplicationCommandData().Options[0].Options)
 
 	switch i.ApplicationCommandData().Options[0].Name {
-	case "start":
-		p.handlePollStart(s, i, options)
 	case "stop":
 		p.handlePollStop(s, i, options)
 	}
