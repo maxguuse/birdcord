@@ -15,7 +15,7 @@ service Polls {
 
 message CreatePollRequest {
   string title = 1;
-  repeated string options = 2;
+  string options = 2;
   string discord_id = 3;
   string discord_author_id = 4;
   string discord_guild_id = 5;
@@ -43,7 +43,7 @@ message VoteResponse {
 
 message Option {
   string title = 1;
-  int32 id = 2;
+  string custom_id = 2;
   int32 total_votes = 3;
 }
 
