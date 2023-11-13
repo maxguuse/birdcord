@@ -9,8 +9,8 @@ import (
 var (
 	ActivePoll = func(
 		title, description, pollId string,
-		totalVotes int32,
 		nickname, avatarURL string,
+		totalVotes int32,
 	) *discordgo.MessageEmbed {
 		return &discordgo.MessageEmbed{
 			Title:       title,
@@ -29,14 +29,26 @@ var (
 				{
 					Name:   "Всего голосов",
 					Value:  strconv.Itoa(int(totalVotes)),
-					Inline: false,
+					Inline: true,
 				},
 			},
 		}
 	}
 
-	PollResults = func() *discordgo.MessageEmbed {
+	PollResults = func(
+		title, description, pollId string,
+		nickname, avatarURL string,
+		winners string,
+		totalVotes int32,
+	) *discordgo.MessageEmbed {
+		embed := ActivePoll(title, description, pollId, nickname, avatarURL, totalVotes)
 
-		return nil
+		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+			Name:   "Победители",
+			Value:  winners,
+			Inline: true,
+		})
+
+		return embed
 	}
 )

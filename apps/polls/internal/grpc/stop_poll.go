@@ -2,17 +2,27 @@ package grpc
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/maxguuse/birdcord/libs/grpc/generated/polls"
+	"github.com/maxguuse/birdcord/libs/sqlc/queries"
 )
 
-func (p PollsServer) StopPoll(ctx context.Context, request *polls.StopPollRequest) (*polls.StopPollResponse, error) {
-	options, err := p.qr.GetOptionsWithVotesCount(ctx, pgtype.Int4{
+func (p PollsServer) stopPoll(ctx context.Context, request *polls.StopPollRequest) (*polls.StopPollResponse, error) {
+	tx, err := p.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	qr := queries.New(tx)
+
+	options, err := qr.GetOptionsWithVotesCount(ctx, pgtype.Int4{
 		Int32: request.PollId,
 		Valid: true,
 	})
 	if err != nil {
-		return nil, err
+		rollbackErr := tx.Rollback(ctx)
+		return &polls.StopPollResponse{}, errors.Join(err, rollbackErr)
 	}
 
 	// Calculate winners
@@ -27,7 +37,7 @@ func (p PollsServer) StopPoll(ctx context.Context, request *polls.StopPollReques
 	for _, option := range options {
 		if option.VoteCount == maxVotes {
 			winners = append(winners, &polls.Option{
-				Id:         option.ID,
+				CustomId:   fmt.Sprintf("poll_%d_choice_%d", request.PollId, option.ID),
 				Title:      option.Title.String,
 				TotalVotes: option.VoteCount,
 			})
@@ -40,20 +50,28 @@ func (p PollsServer) StopPoll(ctx context.Context, request *polls.StopPollReques
 		totalVotes += option.VoteCount
 	}
 
-	poll, err := p.qr.GetPoll(ctx, request.PollId)
+	poll, err := qr.GetPoll(ctx, request.PollId)
 	if err != nil {
-		return nil, err
+		rollbackErr := tx.Rollback(ctx)
+		return &polls.StopPollResponse{}, errors.Join(err, rollbackErr)
 	}
 
-	err = p.qr.StopPoll(ctx, request.PollId)
+	err = qr.StopPoll(ctx, request.PollId)
 	if err != nil {
-		return nil, err
+		rollbackErr := tx.Rollback(ctx)
+		return &polls.StopPollResponse{}, errors.Join(err, rollbackErr)
+	}
+
+	commitErr := tx.Commit(ctx)
+	if commitErr != nil {
+		return &polls.StopPollResponse{}, commitErr
 	}
 
 	return &polls.StopPollResponse{
-		DiscordToken: poll.DiscordToken.String,
-		Winners:      winners,
-		TotalVotes:   totalVotes,
-		Title:        poll.Title.String,
+		DiscordId:  poll.DiscordID.String,
+		ChannelId:  poll.ChannelID.String,
+		Winners:    winners,
+		TotalVotes: totalVotes,
+		Title:      poll.Title.String,
 	}, nil
 }

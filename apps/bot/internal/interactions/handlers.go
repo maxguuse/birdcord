@@ -6,11 +6,13 @@ import (
 	"go.uber.org/fx"
 )
 
+type handlerMap map[string]func(s *discordgo.Session, i *discordgo.Interaction)
+
 type Handlers struct {
 	Polls *polls.Polls
 
-	Commands map[string]func(s *discordgo.Session, i *discordgo.Interaction)
-	// Autocompletes
+	Commands     handlerMap
+	Autocomplete handlerMap
 	// MessageComponents
 	// ModalSubmits
 	// Pings
@@ -19,8 +21,11 @@ type Handlers struct {
 func NewHandlers(pollsHandlers *polls.Polls) *Handlers {
 	return &Handlers{
 		Polls: pollsHandlers,
-		Commands: map[string]func(s *discordgo.Session, i *discordgo.Interaction){
+		Commands: handlerMap{
 			"poll": pollsHandlers.CommandHandler,
+		},
+		Autocomplete: handlerMap{
+			"poll": pollsHandlers.AutocompleteHandler,
 		},
 	}
 }

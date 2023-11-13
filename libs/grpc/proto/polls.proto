@@ -11,6 +11,8 @@ service Polls {
   rpc GetActivePolls(GetActivePollsRequest) returns (GetActivePollsResponse);
   rpc StopPoll(StopPollRequest) returns (StopPollResponse);
   rpc Vote(VoteRequest) returns (VoteResponse);
+
+  rpc InvalidatePoll(InvalidatePollRequest) returns (google.protobuf.Empty);
 }
 
 message CreatePollRequest {
@@ -65,8 +67,13 @@ message StopPollRequest {
 }
 
 message StopPollResponse {
-  string discord_token = 1;
-  repeated Option winners = 2;
-  int32 total_votes = 3;
-  string title = 4;
+  string discord_id = 1;
+  string channel_id = 2;
+  repeated Option winners = 3;
+  int32 total_votes = 4;
+  string title = 5;
+}
+
+message InvalidatePollRequest {
+  int32 poll_id = 1;
 }

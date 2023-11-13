@@ -9,9 +9,16 @@ import (
 	"github.com/maxguuse/birdcord/libs/sqlc/queries"
 	"github.com/samber/lo"
 	"strings"
+	"unicode/utf8"
 )
 
 func (p PollsServer) createPoll(ctx context.Context, request *polls.CreatePollRequest) (*polls.CreatePollResponse, error) {
+	tx, err := p.pool.Begin(ctx)
+	if err != nil {
+		return &polls.CreatePollResponse{}, err
+	}
+	qr := queries.New(tx)
+
 	pollOptions := strings.Split(request.Options, "|")
 	if len(pollOptions) < 2 || len(pollOptions) > 25 {
 		return &polls.CreatePollResponse{}, errors.New("количество вариантов ответа должно быть от 2 до 25")
@@ -48,14 +55,20 @@ func (p PollsServer) createPoll(ctx context.Context, request *polls.CreatePollRe
 		},
 	}
 
-	poll, err := p.qr.CreatePoll(ctx, createPollParams)
+	poll, err := qr.CreatePoll(ctx, createPollParams)
 	if err != nil {
-		return &polls.CreatePollResponse{}, err // Add transactional rollback
+		rollbackErr := tx.Rollback(ctx)
+		return &polls.CreatePollResponse{}, errors.Join(err, rollbackErr)
 	}
 
 	// Create new record for each option in polls_options table in DB
-	grpcOptions := make([]*polls.Option, 0, len(pollOptions))
-	for _, option := range pollOptions {
+	grpcOptions := make([]*polls.Option, len(pollOptions))
+	for i, option := range pollOptions {
+		if utf8.RuneCountInString(option) > 50 {
+			rollbackErr := tx.Rollback(ctx)
+			return &polls.CreatePollResponse{}, errors.Join(rollbackErr, errors.New("длина варианта ответа не должна превышать 50 символов"))
+		}
+
 		createOptionParams := queries.CreateOptionParams{}
 		createOptionParams.Title = pgtype.Text{
 			String: option,
@@ -66,9 +79,10 @@ func (p PollsServer) createPoll(ctx context.Context, request *polls.CreatePollRe
 			Valid: true,
 		}
 
-		pollOption, err := p.qr.CreateOption(ctx, createOptionParams)
-		if err != nil {
-			return &polls.CreatePollResponse{}, err // Add transactional rollback
+		pollOption, createOptionErr := qr.CreateOption(ctx, createOptionParams)
+		if createOptionErr != nil {
+			rollbackErr := tx.Rollback(ctx)
+			return &polls.CreatePollResponse{}, errors.Join(createOptionErr, rollbackErr)
 		}
 
 		grpcPollOption := polls.Option{
@@ -77,7 +91,12 @@ func (p PollsServer) createPoll(ctx context.Context, request *polls.CreatePollRe
 			TotalVotes: 0,
 		}
 
-		grpcOptions = append(grpcOptions, &grpcPollOption)
+		grpcOptions[i] = &grpcPollOption
+	}
+
+	commitErr := tx.Commit(ctx)
+	if commitErr != nil {
+		return &polls.CreatePollResponse{}, commitErr
 	}
 
 	return &polls.CreatePollResponse{

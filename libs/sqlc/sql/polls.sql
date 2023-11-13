@@ -21,3 +21,12 @@ SELECT id, title FROM polls
 UPDATE polls
     SET active = FALSE
     WHERE id = $1;
+
+-- name: RemoveVotedUsers :exec
+DELETE FROM voted_users WHERE poll_id = $1;
+
+-- name: RemovePollOptions :exec
+DELETE FROM polls_options WHERE poll_id = $1;
+
+-- name: RemovePoll :exec
+DELETE FROM polls WHERE id = $1;

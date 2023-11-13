@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -26,6 +27,7 @@ type PollsClient interface {
 	GetActivePolls(ctx context.Context, in *GetActivePollsRequest, opts ...grpc.CallOption) (*GetActivePollsResponse, error)
 	StopPoll(ctx context.Context, in *StopPollRequest, opts ...grpc.CallOption) (*StopPollResponse, error)
 	Vote(ctx context.Context, in *VoteRequest, opts ...grpc.CallOption) (*VoteResponse, error)
+	InvalidatePoll(ctx context.Context, in *InvalidatePollRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type pollsClient struct {
@@ -72,6 +74,15 @@ func (c *pollsClient) Vote(ctx context.Context, in *VoteRequest, opts ...grpc.Ca
 	return out, nil
 }
 
+func (c *pollsClient) InvalidatePoll(ctx context.Context, in *InvalidatePollRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/polls.Polls/InvalidatePoll", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PollsServer is the server API for Polls service.
 // All implementations must embed UnimplementedPollsServer
 // for forward compatibility
@@ -80,6 +91,7 @@ type PollsServer interface {
 	GetActivePolls(context.Context, *GetActivePollsRequest) (*GetActivePollsResponse, error)
 	StopPoll(context.Context, *StopPollRequest) (*StopPollResponse, error)
 	Vote(context.Context, *VoteRequest) (*VoteResponse, error)
+	InvalidatePoll(context.Context, *InvalidatePollRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedPollsServer()
 }
 
@@ -98,6 +110,9 @@ func (UnimplementedPollsServer) StopPoll(context.Context, *StopPollRequest) (*St
 }
 func (UnimplementedPollsServer) Vote(context.Context, *VoteRequest) (*VoteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Vote not implemented")
+}
+func (UnimplementedPollsServer) InvalidatePoll(context.Context, *InvalidatePollRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InvalidatePoll not implemented")
 }
 func (UnimplementedPollsServer) mustEmbedUnimplementedPollsServer() {}
 
@@ -184,6 +199,24 @@ func _Polls_Vote_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Polls_InvalidatePoll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InvalidatePollRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PollsServer).InvalidatePoll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/polls.Polls/InvalidatePoll",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PollsServer).InvalidatePoll(ctx, req.(*InvalidatePollRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Polls_ServiceDesc is the grpc.ServiceDesc for Polls service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -206,6 +239,10 @@ var Polls_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Vote",
 			Handler:    _Polls_Vote_Handler,
+		},
+		{
+			MethodName: "InvalidatePoll",
+			Handler:    _Polls_InvalidatePoll_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

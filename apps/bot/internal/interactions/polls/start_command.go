@@ -2,6 +2,7 @@ package polls
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/bot/internal/embeds"
@@ -30,7 +31,7 @@ var start = &discordgo.ApplicationCommandOption{
 	},
 }
 
-func (p *Polls) handleStart(
+func (p *Polls) handleStartCommand(
 	s *discordgo.Session, i *discordgo.Interaction,
 	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
 ) {
@@ -38,6 +39,7 @@ func (p *Polls) handleStart(
 	message, err := s.ChannelMessageSend(i.ChannelID, "Опрос формируется...")
 	if err != nil {
 		fmt.Println("Error sending poll message:", err) //TODO Replace with logger
+		respondWithError(s, i, errors.Join(err, errors.New("внутренняя ошибка бота, сообщите гусю")))
 		return
 	}
 	// Process poll data
@@ -54,7 +56,7 @@ func (p *Polls) handleStart(
 	)
 	if err != nil {
 		fmt.Println("Error from gRPC CreatePoll:", err) //TODO Replace with logger
-		processPollFailure(s, i, message, err)
+		p.processPollFailure(s, i, message, err)
 		return
 	}
 	// Edit poll message with actual data
@@ -67,29 +69,19 @@ func (p *Polls) handleStart(
 			options["title"].StringValue(),
 			components.description,
 			fmt.Sprintf("Poll ID: %d", response.PollId),
-			0,
 			i.Member.Nick,
 			i.Member.AvatarURL("1024"),
+			0,
 		),
 		Components: components.actionRows,
 	})
 	if err != nil {
 		fmt.Println("Error editing poll message:", err) //TODO Replace with logger
-		processPollFailure(s, i, message, err)
+		p.processPollFailure(s, i, message, err)
 		return
 	}
 	// Send interaction response if poll message sent successfully
-	err = s.InteractionRespond(i, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Flags:   discordgo.MessageFlagsEphemeral,
-			Content: "Опрос успешно создан.",
-		},
-	})
-	if err != nil {
-		fmt.Println("Error responding to poll:", err) //TODO Replace with logger
-		processPollFailure(s, i, message, err)
-	}
+	p.processPollInteractionResponse(s, i, message, response.PollId, "Опрос успешно создан.")
 }
 
 type pollComponents struct {
@@ -126,39 +118,5 @@ func generatePollComponents(response *polls.CreatePollResponse) *pollComponents 
 		actionRows: lo.Map(actionRows, func(actionRow *discordgo.ActionsRow, _ int) discordgo.MessageComponent {
 			return actionRow
 		}),
-	}
-}
-
-func processPollFailure(s *discordgo.Session, i *discordgo.Interaction, message *discordgo.Message, err error) {
-	deleteErr := s.ChannelMessageDelete(message.ChannelID, message.ID)
-	if deleteErr != nil {
-		fmt.Println("Error deleting poll message:", deleteErr) //TODO Replace with logger
-		return
-	}
-
-	responseErr := s.InteractionRespond(i, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Flags: discordgo.MessageFlagsEphemeral,
-		},
-	})
-	if responseErr != nil {
-		fmt.Println("Error responding to poll interaction with error:", responseErr) //TODO Replace with logger
-		return
-	}
-
-	_, followupErr := s.FollowupMessageCreate(i, false, &discordgo.WebhookParams{
-		Content: "Ошибка при создании опроса!",
-		Flags:   discordgo.MessageFlagsEphemeral,
-		Embeds: []*discordgo.MessageEmbed{
-			{
-				Title:       "Сообщение об ошибке",
-				Description: err.Error(),
-			},
-		},
-	})
-	if followupErr != nil {
-		fmt.Println("Error sending poll error message:", followupErr) //TODO Replace with logger
-		return
 	}
 }

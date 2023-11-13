@@ -7,7 +7,7 @@ import (
 )
 
 func NewPolls() polls.PollsClient {
-	conn, err := grpc.Dial("polls:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}

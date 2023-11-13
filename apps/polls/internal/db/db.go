@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/maxguuse/birdcord/libs/sqlc/queries"
 	"go.uber.org/fx"
 	"os"
 )
 
-func New(lc fx.Lifecycle) queries.DBTX {
+func New(lc fx.Lifecycle) *pgxpool.Pool {
 	conn, err := pgxpool.New(context.Background(), os.Getenv("CONNECTION_STRING"))
 	if err != nil {
 		fmt.Println("Error establishing connection with database:", err)

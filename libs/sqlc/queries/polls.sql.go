@@ -110,6 +110,33 @@ func (q *Queries) GetToken(ctx context.Context, id int32) (pgtype.Text, error) {
 	return discord_id, err
 }
 
+const removePoll = `-- name: RemovePoll :exec
+DELETE FROM polls WHERE id = $1
+`
+
+func (q *Queries) RemovePoll(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, removePoll, id)
+	return err
+}
+
+const removePollOptions = `-- name: RemovePollOptions :exec
+DELETE FROM polls_options WHERE poll_id = $1
+`
+
+func (q *Queries) RemovePollOptions(ctx context.Context, pollID pgtype.Int4) error {
+	_, err := q.db.Exec(ctx, removePollOptions, pollID)
+	return err
+}
+
+const removeVotedUsers = `-- name: RemoveVotedUsers :exec
+DELETE FROM voted_users WHERE poll_id = $1
+`
+
+func (q *Queries) RemoveVotedUsers(ctx context.Context, pollID pgtype.Int4) error {
+	_, err := q.db.Exec(ctx, removeVotedUsers, pollID)
+	return err
+}
+
 const stopPoll = `-- name: StopPoll :exec
 UPDATE polls
     SET active = FALSE

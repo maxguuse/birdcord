@@ -2,18 +2,27 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/maxguuse/birdcord/libs/grpc/generated/polls"
+	"github.com/maxguuse/birdcord/libs/sqlc/queries"
 )
 
 func (p PollsServer) getActivePolls(ctx context.Context, request *polls.GetActivePollsRequest) (*polls.GetActivePollsResponse, error) {
-	activePolls, err := p.qr.GetActivePolls(ctx, pgtype.Text{
+	tx, err := p.pool.Begin(ctx)
+	if err != nil {
+		return &polls.GetActivePollsResponse{}, err
+	}
+	qr := queries.New(tx)
+
+	activePolls, err := qr.GetActivePolls(ctx, pgtype.Text{
 		String: request.DiscordGuildId,
 		Valid:  true,
 	})
 	if err != nil {
-		return nil, err
+		rollbackErr := tx.Rollback(ctx)
+		return &polls.GetActivePollsResponse{}, errors.Join(err, rollbackErr)
 	}
 
 	grpcPolls := make([]*polls.Poll, 0, len(activePolls))
@@ -24,6 +33,11 @@ func (p PollsServer) getActivePolls(ctx context.Context, request *polls.GetActiv
 			Id:    poll.ID,
 		}
 		grpcPolls = append(grpcPolls, &grpcPoll)
+	}
+
+	commitErr := tx.Commit(ctx)
+	if commitErr != nil {
+		return &polls.GetActivePollsResponse{}, commitErr
 	}
 
 	return &polls.GetActivePollsResponse{

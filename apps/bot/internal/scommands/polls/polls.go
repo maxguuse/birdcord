@@ -15,9 +15,7 @@ type Polls struct {
 var pollCommand = &discordgo.ApplicationCommand{
 	Name:        "poll",
 	Description: "Управление опросами",
-	Options: []*discordgo.ApplicationCommandOption{
-		pollStopSubcommand,
-	},
+	Options:     []*discordgo.ApplicationCommandOption{},
 }
 
 func New(pollsClient grpcPolls.PollsClient) *Polls {
@@ -38,21 +36,8 @@ func (p *Polls) Register(s *discordgo.Session) {
 
 func (p *Polls) Handler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	switch i.Type {
-	case discordgo.InteractionApplicationCommandAutocomplete:
-		fallthrough
-	case discordgo.InteractionApplicationCommand:
-		p.commandHandler(s, i)
 	case discordgo.InteractionMessageComponent:
 		p.buttonHandler(s, i)
-	}
-}
-
-func (p *Polls) commandHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	options := buildOptionsMap(i.ApplicationCommandData().Options[0].Options)
-
-	switch i.ApplicationCommandData().Options[0].Name {
-	case "stop":
-		p.handlePollStop(s, i, options)
 	}
 }
 

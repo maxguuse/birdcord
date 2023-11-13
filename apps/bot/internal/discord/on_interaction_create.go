@@ -12,7 +12,9 @@ func (b *Bot) onInteractionCreate(s *discordgo.Session, i *discordgo.Interaction
 			h(s, i.Interaction)
 		}
 	case discordgo.InteractionApplicationCommandAutocomplete:
-		fmt.Println("Got Autocompletion interaction, not implemented yet")
+		if h, ok := b.interactions.Autocomplete[i.ApplicationCommandData().Name]; ok {
+			h(s, i.Interaction)
+		}
 	case discordgo.InteractionMessageComponent:
 		fmt.Println("Got Component interaction, not implemented yet")
 	case discordgo.InteractionModalSubmit:

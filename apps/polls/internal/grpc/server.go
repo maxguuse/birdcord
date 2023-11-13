@@ -3,26 +3,27 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/maxguuse/birdcord/libs/grpc/generated/polls"
-	"github.com/maxguuse/birdcord/libs/sqlc/queries"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"net"
 )
 
 type PollsServer struct {
 	polls.UnimplementedPollsServer
 
-	qr *queries.Queries
+	pool *pgxpool.Pool
 }
 
 func StartPollsServer(
 	lc fx.Lifecycle,
-	qr *queries.Queries,
+	pool *pgxpool.Pool,
 ) error {
 	server := &PollsServer{
-		qr: qr,
+		pool: pool,
 	}
 
 	grpcNetListener, err := net.Listen("tcp", "0.0.0.0:50051")
@@ -64,4 +65,12 @@ func (p PollsServer) Vote(ctx context.Context, request *polls.VoteRequest) (*pol
 
 func (p PollsServer) GetActivePolls(ctx context.Context, request *polls.GetActivePollsRequest) (*polls.GetActivePollsResponse, error) {
 	return p.getActivePolls(ctx, request)
+}
+
+func (p PollsServer) StopPoll(ctx context.Context, request *polls.StopPollRequest) (*polls.StopPollResponse, error) {
+	return p.stopPoll(ctx, request)
+}
+
+func (p PollsServer) InvalidatePoll(ctx context.Context, request *polls.InvalidatePollRequest) (*emptypb.Empty, error) {
+	return p.invalidatePoll(ctx, request)
 }
