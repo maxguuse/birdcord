@@ -2,35 +2,79 @@
 -- +goose StatementBegin
 SELECT 'up SQL query';
 
+CREATE TABLE "guilds" (
+    "id" serial PRIMARY KEY,
+    "discord_guild_id" varchar(32) UNIQUE NOT NULL
+);
+
+CREATE TABLE "users" (
+    "id" serial PRIMARY KEY,
+    "discord_user_id" varchar(32) UNIQUE NOT NULL
+);
+
+CREATE TABLE "messages" (
+    "id" serial PRIMARY KEY,
+    "discord_message_id" varchar(32) NOT NULL,
+    "discord_channel_id" varchar(32) NOT NULL,
+    CONSTRAINT unique_discord_message_and_channel UNIQUE ("discord_message_id", "discord_channel_id")
+);
+
 CREATE TABLE "polls" (
     "id" serial PRIMARY KEY,
-    "title" varchar,
-    "discord_token" varchar UNIQUE
+    "title" varchar(100) NOT NULL,
+    "created_at" time DEFAULT now(),
+    "guild_id" int NOT NULL,
+    "author_id" int
 );
 
-CREATE TABLE "polls_options" (
+CREATE TABLE "poll_options" (
     "id" serial PRIMARY KEY,
-    "title" varchar,
-    "poll_id" int
+    "title" varchar(100) NOT NULL,
+    "poll_id" int NOT NULL
 );
 
-CREATE TABLE "voted_users" (
+CREATE TABLE "poll_messages" (
     "id" serial PRIMARY KEY,
-    "discord_id" varchar,
-    "option_id" int,
-    "poll_id" int
+    "message_id" int NOT NULL,
+    "poll_id" int NOT NULL,
+    CONSTRAINT unique_message_and_poll UNIQUE ("message_id", "poll_id")
 );
 
-ALTER TABLE "polls_options" ADD FOREIGN KEY ("poll_id") REFERENCES "polls" ("id");
-ALTER TABLE "voted_users" ADD FOREIGN KEY ("poll_id") REFERENCES "polls" ("id");
-ALTER TABLE "voted_users" ADD FOREIGN KEY ("option_id") REFERENCES "polls_options" ("id");
+CREATE TABLE "poll_votes" (
+    "id" serial PRIMARY KEY,
+    "poll_id" int NOT NULL,
+    "option_id" int NOT NULL,
+    "user_id" int NOT NULL,
+    CONSTRAINT unique_poll_and_user UNIQUE ("poll_id", "user_id")
+);
+
+ALTER TABLE "polls" ADD FOREIGN KEY ("author_id") REFERENCES "users" ("id");
+ALTER TABLE "polls" ADD FOREIGN KEY ("guild_id") REFERENCES "guilds" ("id");
+ALTER TABLE "poll_options" ADD FOREIGN KEY ("poll_id") REFERENCES "polls" ("id");
+ALTER TABLE "poll_messages" ADD FOREIGN KEY ("poll_id") REFERENCES "polls" ("id");
+ALTER TABLE "poll_messages" ADD FOREIGN KEY ("message_id") REFERENCES "messages" ("id");
+ALTER TABLE "poll_votes" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
+ALTER TABLE "poll_votes" ADD FOREIGN KEY ("poll_id") REFERENCES "polls" ("id");
+ALTER TABLE "poll_votes" ADD FOREIGN KEY ("option_id") REFERENCES "poll_options" ("id");
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 SELECT 'down SQL query';
 
-DROP TABLE IF EXISTS "voted_users";
-DROP TABLE IF EXISTS "polls_options";
+DROP TABLE IF EXISTS "poll_votes";
+DROP TABLE IF EXISTS "poll_messages";
+DROP TABLE IF EXISTS "poll_options";
 DROP TABLE IF EXISTS "polls";
+ALTER TABLE "polls" DROP CONSTRAINT IF EXISTS "polls_author_id_fkey";
+ALTER TABLE "polls" DROP CONSTRAINT IF EXISTS "polls_guild_id_fkey";
+ALTER TABLE "poll_options" DROP CONSTRAINT IF EXISTS "poll_options_poll_id_fkey";
+ALTER TABLE "poll_messages" DROP CONSTRAINT IF EXISTS "poll_messages_poll_id_fkey";
+ALTER TABLE "poll_messages" DROP CONSTRAINT IF EXISTS "poll_messages_message_id_fkey";
+ALTER TABLE "poll_votes" DROP CONSTRAINT IF EXISTS "poll_votes_user_id_fkey";
+ALTER TABLE "poll_votes" DROP CONSTRAINT IF EXISTS "poll_votes_poll_id_fkey";
+ALTER TABLE "poll_votes" DROP CONSTRAINT IF EXISTS "poll_votes_option_id_fkey";
+DROP TABLE IF EXISTS "messages";
+DROP TABLE IF EXISTS "users";
+DROP TABLE IF EXISTS "guilds";
 -- +goose StatementEnd

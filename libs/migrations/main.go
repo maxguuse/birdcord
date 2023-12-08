@@ -3,19 +3,20 @@ package main
 import (
 	"database/sql"
 	"embed"
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/pressly/goose/v3"
-	"os"
 )
 
 //
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-const driver = "postgres"
+const driver = "pgx"
 
 func main() {
-	db, err := sql.Open(driver, os.Getenv("CONNECTION_STRING"))
+	cfg := config.New()
+	db, err := sql.Open(driver, cfg.ConnectionString)
 	if err != nil {
 		panic(err)
 	}
