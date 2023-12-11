@@ -3,7 +3,8 @@ package client
 import (
 	"context"
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/discord/internal/postgres"
+	"github.com/maxguuse/birdcord/apps/discord/internal/commands"
+	"github.com/maxguuse/birdcord/apps/discord/internal/eventbus"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
 	"go.uber.org/fx"
@@ -13,14 +14,22 @@ import (
 type Client struct {
 	*discordgo.Session
 
-	Log      logger.Logger
-	Database *postgres.Postgres
+	Log             logger.Logger
+	Eventbus        *eventbus.EventBus
+	CommandsHandler *commands.Handler
 }
 
-func New(lc fx.Lifecycle, log logger.Logger, postgres *postgres.Postgres, cfg *config.Config) {
+func New(
+	lc fx.Lifecycle,
+	log logger.Logger,
+	eb *eventbus.EventBus,
+	ch *commands.Handler,
+	cfg *config.Config,
+) {
 	client := &Client{
-		Log:      log,
-		Database: postgres,
+		Log:             log,
+		Eventbus:        eb,
+		CommandsHandler: ch,
 	}
 
 	if s, err := discordgo.New("Bot " + cfg.DiscordToken); err != nil {
@@ -33,18 +42,8 @@ func New(lc fx.Lifecycle, log logger.Logger, postgres *postgres.Postgres, cfg *c
 		client.Session = s
 	}
 
-	client.LogLevel = discordgo.LogWarning
-	discordgo.Logger = client.logger()
-
-	client.AddHandler(client.onConnect)
-	client.AddHandler(func(_ *discordgo.Session, _ *discordgo.Disconnect) {
-		client.Log.Info("Bot is disconnected!")
-	})
-	client.AddHandler(func(_ *discordgo.Session, r *discordgo.Ready) {
-		client.Log.Info("Bot is ready!")
-	})
-
-	client.AddHandler(client.onInteractionCreate)
+	client.registerLogger()
+	client.registerHandlers()
 
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
@@ -69,14 +68,4 @@ func New(lc fx.Lifecycle, log logger.Logger, postgres *postgres.Postgres, cfg *c
 			return nil
 		},
 	})
-}
-
-type messageComponentHandler struct{}
-
-func (h *messageComponentHandler) Handle(c *Client, i *discordgo.InteractionCreate) {
-	c.Log.Debug(
-		"Got message component",
-		slog.Uint64("type", uint64(i.MessageComponentData().ComponentType)),
-		slog.String("custom_id", i.MessageComponentData().CustomID),
-	)
 }

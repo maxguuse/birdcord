@@ -5,14 +5,11 @@ import (
 	"log/slog"
 )
 
-type InteractionHandler interface {
-	Handle(*Client, *discordgo.InteractionCreate)
-}
-
-var interactions = map[discordgo.InteractionType]InteractionHandler{
-	discordgo.InteractionApplicationCommand:             &applicationCommandHandler{},
-	discordgo.InteractionApplicationCommandAutocomplete: &applicationCommandAutocompleteHandler{},
-	discordgo.InteractionMessageComponent:               &messageComponentHandler{},
+func (c *Client) registerHandlers() {
+	c.AddHandler(c.onInteractionCreate)
+	c.AddHandler(c.onConnect)
+	c.AddHandler(c.onDisconnect)
+	c.AddHandler(c.onReady)
 }
 
 func (c *Client) onInteractionCreate(_ *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -21,17 +18,12 @@ func (c *Client) onInteractionCreate(_ *discordgo.Session, i *discordgo.Interact
 		slog.String("type", i.Type.String()),
 	)
 
-	handler, exists := interactions[i.Type]
-
-	if !exists {
-		c.Log.Error(
-			"Unhandled interaction type",
-			slog.String("type", i.Type.String()),
-		)
-		return
+	switch i.Type {
+	case discordgo.InteractionApplicationCommand:
+		c.Eventbus.Publish(i.ApplicationCommandData().Name+":command", c.Session, i.Interaction)
+	case discordgo.InteractionApplicationCommandAutocomplete:
+		c.Eventbus.Publish(i.ApplicationCommandData().Name+":autocomplete", c.Session, i.Interaction)
 	}
-
-	handler.Handle(c, i)
 }
 
 func (c *Client) onConnect(_ *discordgo.Session, _ *discordgo.Connect) {
@@ -53,10 +45,21 @@ func (c *Client) onConnect(_ *discordgo.Session, _ *discordgo.Connect) {
 		)
 	}
 
-	if err := c.RegisterCommands(); err != nil {
+	c.CommandsHandler.Subscribe()
+	cmds := c.CommandsHandler.GetCommands()
+
+	if _, err := c.ApplicationCommandBulkOverwrite(c.State.User.ID, "", cmds); err != nil {
 		c.Log.Error(
-			"Error registering commands",
+			"Error creating commands",
 			slog.String("error", err.Error()),
 		)
 	}
+}
+
+func (c *Client) onDisconnect(_ *discordgo.Session, _ *discordgo.Disconnect) {
+	c.Log.Info("Bot is disconnected!")
+}
+
+func (c *Client) onReady(_ *discordgo.Session, _ *discordgo.Ready) {
+	c.Log.Info("Bot is ready!")
 }

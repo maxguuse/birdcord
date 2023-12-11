@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-func (c *Client) logger() func(int, int, string, ...interface{}) {
-	return func(msgL, caller int, format string, a ...interface{}) {
+func (c *Client) registerLogger() {
+	discordgo.Logger = func(msgL int, caller int, format string, a ...interface{}) {
 		var pcs [1]uintptr
 		runtime.Callers(4, pcs[:])
 
