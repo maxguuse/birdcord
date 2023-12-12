@@ -29,7 +29,15 @@ func (eb *EventBus) Subscribe(e string, callback EventHandler) {
 func (eb *EventBus) Publish(e string, s *discordgo.Session, i interface{}) {
 	eb.mux.RLock()
 	defer eb.mux.RUnlock()
-	for _, callback := range eb.subs[e] {
-		callback.Handle(s, i)
+
+	handlers, ok := eb.subs[e]
+	if !ok {
+		return
+	}
+
+	for _, callback := range handlers {
+		go func(callback EventHandler) {
+			callback.Handle(s, i)
+		}(callback)
 	}
 }
