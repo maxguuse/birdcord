@@ -3,6 +3,8 @@ package logger
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog"
+	slogzerolog "github.com/samber/slog-zerolog/v2"
 	"log/slog"
 	"os"
 	"runtime"
@@ -39,7 +41,7 @@ func newLogger(service string) Logger {
 			newPath := strings.Join(p, "/")
 
 			functionParts := strings.Split(source.Function, "/")
-			p = functionParts[len(functionParts)-3:]
+			p = functionParts[len(functionParts)-1:]
 			newFunction := strings.Join(p, "/")
 
 			newSource := fmt.Sprintf("%s:%s:%d", newPath, newFunction, source.Line)
@@ -62,15 +64,15 @@ func newLogger(service string) Logger {
 			),
 		)
 	} else {
+		zerologLogger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout})
+
 		log = slog.New(
-			slog.NewTextHandler(
-				os.Stdout,
-				&slog.HandlerOptions{
-					Level:       slog.LevelDebug,
-					AddSource:   true,
-					ReplaceAttr: replaceAttr,
-				},
-			),
+			slogzerolog.Option{
+				Level:       slog.LevelDebug,
+				Logger:      &zerologLogger,
+				AddSource:   true,
+				ReplaceAttr: replaceAttr,
+			}.NewZerologHandler(),
 		)
 	}
 
