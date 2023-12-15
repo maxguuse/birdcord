@@ -12,6 +12,7 @@ import (
 
 func main() {
 	fx.New(
+		fx.NopLogger,
 		fx.Provide(
 			config.New,
 			logger.New("discord"),
