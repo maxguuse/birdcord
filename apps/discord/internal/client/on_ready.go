@@ -2,9 +2,10 @@ package client
 
 import (
 	"context"
-	"github.com/bwmarrin/discordgo"
-	"github.com/jackc/pgx/v5"
 	"log/slog"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo"
 )
 
 func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
@@ -39,34 +40,24 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 		)
 	}
 
-	addGuildsQuery := c.Database.QueryBuilder.
-		Insert("guilds").
-		Columns("discord_guild_id").
-		Suffix("ON CONFLICT (discord_guild_id) DO NOTHING")
-
-	for _, g := range r.Guilds {
+	guildsIds := lo.Map(r.Guilds, func(g *discordgo.Guild, _ int) string {
 		c.Log.Info(
 			"Connected guild",
 			slog.String("id", g.ID),
 			slog.String("name", g.Name),
 		)
-		addGuildsQuery = addGuildsQuery.Values(g.ID)
-	}
-
-	addGuildsSql, args, _ := addGuildsQuery.ToSql()
-	c.Log.Debug("add guilds query", slog.String("query", addGuildsSql))
-
-	err := c.Database.Transaction(func(tx pgx.Tx) error {
-		_, execErr := tx.Exec(context.Background(), addGuildsSql, args...)
-
-		return execErr
+		return g.ID
 	})
+	newGuildsCount, err := c.Database.Queries().CreateGuilds(context.Background(), guildsIds)
 	if err != nil {
 		c.Log.Error(
-			"Error syncing guilds to database",
+			"Error creating guilds",
 			slog.String("error", err.Error()),
 		)
 	} else {
-		c.Log.Info("Synced guilds to database")
+		c.Log.Info(
+			"Synced guilds",
+			slog.Int("new", int(newGuildsCount)),
+		)
 	}
 }

@@ -2,21 +2,22 @@ package client
 
 import (
 	"context"
+	"log/slog"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands"
 	"github.com/maxguuse/birdcord/apps/discord/internal/eventbus"
-	"github.com/maxguuse/birdcord/apps/discord/internal/postgres"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
+	"github.com/maxguuse/birdcord/libs/sqlc/db"
 	"go.uber.org/fx"
-	"log/slog"
 )
 
 type Client struct {
 	*discordgo.Session
 
 	Log             logger.Logger
-	Database        *postgres.Postgres
+	Database        *db.DB
 	Eventbus        *eventbus.EventBus
 	CommandsHandler *commands.Handler
 }
@@ -24,7 +25,7 @@ type Client struct {
 func New(
 	lc fx.Lifecycle,
 	log logger.Logger,
-	db *postgres.Postgres,
+	db *db.DB,
 	eb *eventbus.EventBus,
 	ch *commands.Handler,
 	cfg *config.Config,

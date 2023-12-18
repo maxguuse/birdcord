@@ -1,6 +1,4 @@
 version: "2"
-project:
-  id: "birdcord"
 sql:
   - engine: postgresql
     queries: "./libs/sqlc/sql/"

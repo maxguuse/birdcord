@@ -3,8 +3,8 @@ package commands
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/eventbus"
-	"github.com/maxguuse/birdcord/apps/discord/internal/postgres"
 	"github.com/maxguuse/birdcord/libs/logger"
+	"github.com/maxguuse/birdcord/libs/sqlc/db"
 	"github.com/samber/lo"
 )
 
@@ -19,13 +19,13 @@ type Handler struct {
 	eventbus *eventbus.EventBus
 
 	Log      logger.Logger
-	Database *postgres.Postgres
+	Database *db.DB
 }
 
 func New(
 	eb *eventbus.EventBus,
 	log logger.Logger,
-	db *postgres.Postgres,
+	db *db.DB,
 ) *Handler {
 	h := &Handler{
 		commands: []*command{
