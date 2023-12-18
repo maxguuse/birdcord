@@ -27,12 +27,33 @@ func New(
 	log logger.Logger,
 	db *postgres.Postgres,
 ) *Handler {
-	return &Handler{
-		commands: commands,
+	h := &Handler{
+		commands: []*command{
+			{
+				Command: poll,
+				Callback: &PollCommandHandler{
+					Log:      log,
+					Database: db,
+				},
+				Autocomplete: nil,
+			},
+		},
 		eventbus: eb,
 		Log:      log,
 		Database: db,
 	}
+
+	for _, cmd := range h.commands {
+		if cmd.Callback != nil {
+			go h.eventbus.Subscribe(cmd.Command.Name+":command", cmd.Callback)
+		}
+
+		if cmd.Autocomplete != nil {
+			go h.eventbus.Subscribe(cmd.Command.Name+":autocomplete", cmd.Autocomplete)
+		}
+	}
+
+	return h
 }
 
 func (h *Handler) GetCommands() []*discordgo.ApplicationCommand {
@@ -41,65 +62,4 @@ func (h *Handler) GetCommands() []*discordgo.ApplicationCommand {
 	})
 
 	return commandsList
-}
-
-func (h *Handler) Subscribe() {
-	for _, command := range commands {
-		if command.Callback != nil {
-			go h.eventbus.Subscribe(command.Command.Name+":command", command.Callback)
-		}
-
-		if command.Autocomplete != nil {
-			go h.eventbus.Subscribe(command.Command.Name+":autocomplete", command.Autocomplete)
-		}
-	}
-}
-
-var commands = []*command{
-	{
-		Command:      poll,
-		Callback:     &PollCommandHandler{},
-		Autocomplete: nil,
-	},
-}
-
-var poll = &discordgo.ApplicationCommand{
-	Name:        "poll",
-	Description: "Управление опросами",
-	Options: []*discordgo.ApplicationCommandOption{
-		{
-			Name:        "start",
-			Description: "Начать опрос",
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Name:        "title",
-					Description: "Заголовок опроса",
-					Type:        discordgo.ApplicationCommandOptionString,
-					MaxLength:   50,
-					Required:    true,
-				},
-				{
-					Name:        "options",
-					Description: "Варианты ответа (разделите их символом '|')",
-					Type:        discordgo.ApplicationCommandOptionString,
-					Required:    true,
-				},
-			},
-		},
-		{
-			Name:        "stop",
-			Description: "Остановить опрос",
-			Type:        discordgo.ApplicationCommandOptionSubCommand,
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Name:         "poll",
-					Description:  "Опрос",
-					Type:         discordgo.ApplicationCommandOptionInteger,
-					Required:     true,
-					Autocomplete: true,
-				},
-			},
-		},
-	},
 }
