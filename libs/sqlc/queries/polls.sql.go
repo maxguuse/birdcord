@@ -18,7 +18,7 @@ INSERT INTO polls (
     guild_id
 ) VALUES (
     $1, $2, $3
-) RETURNING id
+) RETURNING id, title, created_at, guild_id, author_id
 `
 
 type CreatePollParams struct {
@@ -27,9 +27,15 @@ type CreatePollParams struct {
 	GuildID  int32       `json:"guild_id"`
 }
 
-func (q *Queries) CreatePoll(ctx context.Context, arg CreatePollParams) (int32, error) {
+func (q *Queries) CreatePoll(ctx context.Context, arg CreatePollParams) (Poll, error) {
 	row := q.db.QueryRow(ctx, createPoll, arg.Title, arg.AuthorID, arg.GuildID)
-	var id int32
-	err := row.Scan(&id)
-	return id, err
+	var i Poll
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.CreatedAt,
+		&i.GuildID,
+		&i.AuthorID,
+	)
+	return i, err
 }

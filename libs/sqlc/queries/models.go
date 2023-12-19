@@ -20,11 +20,11 @@ type Message struct {
 }
 
 type Poll struct {
-	ID        int32       `json:"id"`
-	Title     string      `json:"title"`
-	CreatedAt pgtype.Time `json:"created_at"`
-	GuildID   int32       `json:"guild_id"`
-	AuthorID  pgtype.Int4 `json:"author_id"`
+	ID        int32            `json:"id"`
+	Title     string           `json:"title"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	GuildID   int32            `json:"guild_id"`
+	AuthorID  pgtype.Int4      `json:"author_id"`
 }
 
 type PollMessage struct {

@@ -22,7 +22,7 @@ CREATE TABLE "messages" (
 CREATE TABLE "polls" (
     "id" serial PRIMARY KEY,
     "title" varchar(100) NOT NULL,
-    "created_at" time DEFAULT now(),
+    "created_at" timestamp DEFAULT now(),
     "guild_id" int NOT NULL,
     "author_id" int
 );
@@ -62,10 +62,6 @@ ALTER TABLE "poll_votes" ADD FOREIGN KEY ("option_id") REFERENCES "poll_options"
 -- +goose StatementBegin
 SELECT 'down SQL query';
 
-DROP TABLE IF EXISTS "poll_votes";
-DROP TABLE IF EXISTS "poll_messages";
-DROP TABLE IF EXISTS "poll_options";
-DROP TABLE IF EXISTS "polls";
 ALTER TABLE "polls" DROP CONSTRAINT IF EXISTS "polls_author_id_fkey";
 ALTER TABLE "polls" DROP CONSTRAINT IF EXISTS "polls_guild_id_fkey";
 ALTER TABLE "poll_options" DROP CONSTRAINT IF EXISTS "poll_options_poll_id_fkey";
@@ -74,6 +70,10 @@ ALTER TABLE "poll_messages" DROP CONSTRAINT IF EXISTS "poll_messages_message_id_
 ALTER TABLE "poll_votes" DROP CONSTRAINT IF EXISTS "poll_votes_user_id_fkey";
 ALTER TABLE "poll_votes" DROP CONSTRAINT IF EXISTS "poll_votes_poll_id_fkey";
 ALTER TABLE "poll_votes" DROP CONSTRAINT IF EXISTS "poll_votes_option_id_fkey";
+DROP TABLE IF EXISTS "poll_votes";
+DROP TABLE IF EXISTS "poll_messages";
+DROP TABLE IF EXISTS "poll_options";
+DROP TABLE IF EXISTS "polls";
 DROP TABLE IF EXISTS "messages";
 DROP TABLE IF EXISTS "users";
 DROP TABLE IF EXISTS "guilds";

@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const createPollOption = `-- name: CreatePollOption :many
+const createPollOption = `-- name: CreatePollOption :one
 INSERT INTO poll_options (
     title, 
     poll_id
@@ -23,22 +23,9 @@ type CreatePollOptionParams struct {
 	PollID int32  `json:"poll_id"`
 }
 
-func (q *Queries) CreatePollOption(ctx context.Context, arg CreatePollOptionParams) ([]PollOption, error) {
-	rows, err := q.db.Query(ctx, createPollOption, arg.Title, arg.PollID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []PollOption
-	for rows.Next() {
-		var i PollOption
-		if err := rows.Scan(&i.ID, &i.Title, &i.PollID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) CreatePollOption(ctx context.Context, arg CreatePollOptionParams) (PollOption, error) {
+	row := q.db.QueryRow(ctx, createPollOption, arg.Title, arg.PollID)
+	var i PollOption
+	err := row.Scan(&i.ID, &i.Title, &i.PollID)
+	return i, err
 }

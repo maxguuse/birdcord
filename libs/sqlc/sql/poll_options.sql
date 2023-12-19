@@ -1,4 +1,4 @@
--- name: CreatePollOption :many
+-- name: CreatePollOption :one
 INSERT INTO poll_options (
     title, 
     poll_id

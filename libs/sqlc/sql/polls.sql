@@ -5,4 +5,4 @@ INSERT INTO polls (
     guild_id
 ) VALUES (
     $1, $2, $3
-) RETURNING id;
+) RETURNING *;
