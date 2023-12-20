@@ -34,6 +34,7 @@ func New(
 				Callback: &PollCommandHandler{
 					Log:      log,
 					Database: db,
+					EventBus: eb,
 				},
 				Autocomplete: nil,
 			},

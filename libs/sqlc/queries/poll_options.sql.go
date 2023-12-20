@@ -29,3 +29,28 @@ func (q *Queries) CreatePollOption(ctx context.Context, arg CreatePollOptionPara
 	err := row.Scan(&i.ID, &i.Title, &i.PollID)
 	return i, err
 }
+
+const getPollOptions = `-- name: GetPollOptions :many
+SELECT id, title, poll_id FROM poll_options
+WHERE poll_id = $1
+`
+
+func (q *Queries) GetPollOptions(ctx context.Context, pollID int32) ([]PollOption, error) {
+	rows, err := q.db.Query(ctx, getPollOptions, pollID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PollOption
+	for rows.Next() {
+		var i PollOption
+		if err := rows.Scan(&i.ID, &i.Title, &i.PollID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

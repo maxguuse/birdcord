@@ -29,3 +29,34 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 	err := row.Scan(&i.ID, &i.DiscordMessageID, &i.DiscordChannelID)
 	return i, err
 }
+
+const deleteMessageById = `-- name: DeleteMessageById :exec
+DELETE FROM messages WHERE id = $1
+`
+
+func (q *Queries) DeleteMessageById(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deleteMessageById, id)
+	return err
+}
+
+const getMessageByDiscordID = `-- name: GetMessageByDiscordID :one
+SELECT id, discord_message_id, discord_channel_id FROM messages WHERE discord_message_id = $1
+`
+
+func (q *Queries) GetMessageByDiscordID(ctx context.Context, discordMessageID string) (Message, error) {
+	row := q.db.QueryRow(ctx, getMessageByDiscordID, discordMessageID)
+	var i Message
+	err := row.Scan(&i.ID, &i.DiscordMessageID, &i.DiscordChannelID)
+	return i, err
+}
+
+const getMessageById = `-- name: GetMessageById :one
+SELECT id, discord_message_id, discord_channel_id FROM messages WHERE id = $1
+`
+
+func (q *Queries) GetMessageById(ctx context.Context, id int32) (Message, error) {
+	row := q.db.QueryRow(ctx, getMessageById, id)
+	var i Message
+	err := row.Scan(&i.ID, &i.DiscordMessageID, &i.DiscordChannelID)
+	return i, err
+}

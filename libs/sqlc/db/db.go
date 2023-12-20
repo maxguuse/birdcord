@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/maxguuse/birdcord/libs/config"
@@ -29,12 +30,12 @@ func (p *DB) Queries() *queries.Queries {
 	return p.queries
 }
 
-func (p *DB) Transaction(f func(*queries.Queries) error) (transactionErr error, callbackError error) {
+func (p *DB) Transaction(f func(*queries.Queries) error) error {
 	ctx := context.Background()
 
 	tx, err := p.pool.Begin(ctx)
 	if err != nil {
-		return err, nil
+		return err
 	}
 
 	q := p.queries.WithTx(tx)
@@ -42,8 +43,8 @@ func (p *DB) Transaction(f func(*queries.Queries) error) (transactionErr error, 
 	err = f(q)
 
 	if err != nil {
-		_ = tx.Rollback(ctx)
+		return errors.Join(tx.Rollback(ctx), err)
 	}
 
-	return tx.Commit(ctx), err
+	return tx.Commit(ctx)
 }

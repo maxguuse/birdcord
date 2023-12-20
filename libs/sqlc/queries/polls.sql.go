@@ -39,3 +39,20 @@ func (q *Queries) CreatePoll(ctx context.Context, arg CreatePollParams) (Poll, e
 	)
 	return i, err
 }
+
+const getPoll = `-- name: GetPoll :one
+SELECT id, title, created_at, guild_id, author_id FROM polls WHERE id = $1
+`
+
+func (q *Queries) GetPoll(ctx context.Context, id int32) (Poll, error) {
+	row := q.db.QueryRow(ctx, getPoll, id)
+	var i Poll
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.CreatedAt,
+		&i.GuildID,
+		&i.AuthorID,
+	)
+	return i, err
+}

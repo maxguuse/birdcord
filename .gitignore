@@ -1,3 +1,5 @@
-!.env.example
 .vscode
+.VSCodeCounter/
+
+!.env.example
 *.env

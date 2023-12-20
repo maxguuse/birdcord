@@ -6,6 +6,7 @@ import (
 
 func (c *Client) registerHandlers() {
 	c.AddHandler(c.onInteractionCreate)
+	c.AddHandler(c.onMessageDelete)
 	c.AddHandler(c.onReady)
 	c.AddHandler(c.onConnect)
 	c.AddHandler(c.onDisconnect)

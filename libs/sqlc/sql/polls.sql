@@ -6,3 +6,6 @@ INSERT INTO polls (
 ) VALUES (
     $1, $2, $3
 ) RETURNING *;
+
+-- name: GetPoll :one
+SELECT * FROM polls WHERE id = $1;

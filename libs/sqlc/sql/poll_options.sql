@@ -5,3 +5,7 @@ INSERT INTO poll_options (
 ) VALUES (
     $1, $2
 ) RETURNING *;
+
+-- name: GetPollOptions :many
+SELECT * FROM poll_options
+WHERE poll_id = $1;

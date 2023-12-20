@@ -27,3 +27,47 @@ func (q *Queries) CreatePollMessage(ctx context.Context, arg CreatePollMessagePa
 	_, err := q.db.Exec(ctx, createPollMessage, arg.PollID, arg.MessageID)
 	return err
 }
+
+const deletePollMessageById = `-- name: DeletePollMessageById :exec
+DELETE FROM poll_messages WHERE id = $1
+`
+
+func (q *Queries) DeletePollMessageById(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deletePollMessageById, id)
+	return err
+}
+
+const getMessagesForPollById = `-- name: GetMessagesForPollById :many
+SELECT id, message_id, poll_id FROM poll_messages WHERE poll_id = $1
+`
+
+func (q *Queries) GetMessagesForPollById(ctx context.Context, pollID int32) ([]PollMessage, error) {
+	rows, err := q.db.Query(ctx, getMessagesForPollById, pollID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PollMessage
+	for rows.Next() {
+		var i PollMessage
+		if err := rows.Scan(&i.ID, &i.MessageID, &i.PollID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPollMessageById = `-- name: GetPollMessageById :one
+SELECT id, message_id, poll_id FROM poll_messages WHERE message_id = $1
+`
+
+func (q *Queries) GetPollMessageById(ctx context.Context, messageID int32) (PollMessage, error) {
+	row := q.db.QueryRow(ctx, getPollMessageById, messageID)
+	var i PollMessage
+	err := row.Scan(&i.ID, &i.MessageID, &i.PollID)
+	return i, err
+}
