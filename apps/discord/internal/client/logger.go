@@ -3,14 +3,15 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/bwmarrin/discordgo"
 	"log/slog"
 	"runtime"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 func (c *Client) registerLogger() {
-	discordgo.Logger = func(msgL int, caller int, format string, a ...interface{}) {
+	discordgo.Logger = func(msgL int, caller int, format string, a ...any) {
 		var pcs [1]uintptr
 		runtime.Callers(4, pcs[:])
 
@@ -27,9 +28,8 @@ func (c *Client) registerLogger() {
 		}
 
 		msg := fmt.Sprintf(format, a...)
-		fullMsg := fmt.Sprintf("%s", msg)
 
-		r := slog.NewRecord(time.Now(), lvl, fullMsg, pcs[0])
+		r := slog.NewRecord(time.Now(), lvl, msg, pcs[0])
 
 		_ = c.Log.Handler().Handle(context.Background(), r)
 	}
