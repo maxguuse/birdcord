@@ -1,12 +1,13 @@
 package eventbus
 
 import (
-	"github.com/bwmarrin/discordgo"
 	"sync"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 type EventHandler interface {
-	Handle(*discordgo.Session, interface{})
+	Handle(*discordgo.Session, any)
 }
 
 type EventBus struct {
@@ -26,7 +27,7 @@ func (eb *EventBus) Subscribe(e string, callback EventHandler) {
 	eb.subs[e] = append(eb.subs[e], callback)
 }
 
-func (eb *EventBus) Publish(e string, s *discordgo.Session, i interface{}) {
+func (eb *EventBus) Publish(e string, s *discordgo.Session, i any) {
 	eb.mux.RLock()
 	defer eb.mux.RUnlock()
 
