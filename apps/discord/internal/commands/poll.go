@@ -138,50 +138,41 @@ func (p *PollCommandHandler) startPoll(
 			return fmt.Errorf("not enough options")
 		}
 
-		actionRows := make([]*discordgo.ActionsRow, 0, (len(optionsList)+4)/5)
+		buttons := make([]discordgo.MessageComponent, 0, len(optionsList))
 		for i, option := range optionsList {
 			if len(option) == 0 || utf8.RuneCountInString(option) > 50 {
 				return fmt.Errorf("invalid option length")
 			}
 
-			pollOption, createOptionErr := q.CreatePollOption(ctx, queries.CreatePollOptionParams{
+			pollOption, err := q.CreatePollOption(ctx, queries.CreatePollOptionParams{
 				Title:  option,
 				PollID: poll.ID,
 			})
-			if createOptionErr != nil {
-				return createOptionErr
+			if err != nil {
+				return err //TODO add ErrQueryFailed in db lib
 			}
 
-			if i%5 == 0 {
-				actionRow := &discordgo.ActionsRow{
-					Components: make([]discordgo.MessageComponent, 0, 5),
-				}
-				actionRows = append(actionRows, actionRow)
-			}
-
-			btn := discordgo.Button{
-				Label:    option,
+			customId := fmt.Sprintf("poll_%d_option_%d", poll.ID, pollOption.ID)
+			buttons = append(buttons, discordgo.Button{
+				Label:    pollOption.Title,
 				Style:    discordgo.PrimaryButton,
-				CustomID: fmt.Sprintf("poll_%d_option_%d", poll.ID, pollOption.ID),
-			}
-			lastActionRow := actionRows[len(actionRows)-1]
-			lastActionRow.Components = append(lastActionRow.Components, btn)
+				CustomID: customId,
+			})
 
-			p.EventBus.Subscribe(
-				fmt.Sprintf("poll_%d_option_%d", poll.ID, pollOption.ID),
-				&VoteButtonHandler{
-					poll_id:   poll.ID,
-					option_id: pollOption.ID,
-					Log:       p.Log,
-					Database:  p.Database,
-				},
-			)
+			p.EventBus.Subscribe(customId, &VoteButtonHandler{
+				poll_id:   poll.ID,
+				option_id: pollOption.ID,
+				Log:       p.Log,
+				Database:  p.Database,
+			})
 
 			optionsList[i] = fmt.Sprintf("**%d.** %s", i+1, option)
 		}
-
-		messageComponents := lo.Map(actionRows, func(actionRow *discordgo.ActionsRow, _ int) discordgo.MessageComponent {
-			return actionRow
+		buttonsGroups := lo.Chunk(buttons, 5)
+		actionRows := lo.Map(buttonsGroups, func(buttons []discordgo.MessageComponent, _ int) discordgo.MessageComponent {
+			return discordgo.ActionsRow{
+				Components: buttons,
+			}
 		})
 
 		discordMsg, sendMessageErr := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
@@ -208,7 +199,7 @@ func (p *PollCommandHandler) startPoll(
 					},
 				},
 			},
-			Components: messageComponents,
+			Components: actionRows,
 		})
 		if sendMessageErr != nil {
 			return sendMessageErr
