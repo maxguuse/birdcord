@@ -347,7 +347,12 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 			return err
 		}
 
-		discordUser, err := s.User(vote.Member.User.ID)
+		author, err := q.GetUserById(ctx, poll.AuthorID.Int32)
+		if err != nil {
+			return err
+		}
+
+		discordUser, err := s.User(author.DiscordUserID)
 		if err != nil {
 			return err
 		}
