@@ -12,13 +12,15 @@ import (
 
 func main() {
 	fx.New(
-		// fx.NopLogger,
+		fx.NopLogger,
+
+		commands.NewFx,
+
 		fx.Provide(
 			config.New,
 			logger.New("discord"),
 			db.New,
 			eventbus.New,
-			commands.New,
 		),
 		fx.Invoke(
 			client.New,

@@ -3,9 +3,8 @@ package commands
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/eventbus"
-	"github.com/maxguuse/birdcord/libs/logger"
-	"github.com/maxguuse/birdcord/libs/sqlc/db"
 	"github.com/samber/lo"
+	"go.uber.org/fx"
 )
 
 type command struct {
@@ -18,30 +17,22 @@ type Handler struct {
 	commands []*command
 	eventbus *eventbus.EventBus
 
-	Log      logger.Logger
-	Database *db.DB
+	pollCommandHandler *PollCommandHandler
 }
 
 func New(
 	eb *eventbus.EventBus,
-	log logger.Logger,
-	db *db.DB,
+	pollCommandHandler *PollCommandHandler,
 ) *Handler {
 	h := &Handler{
 		commands: []*command{
 			{
-				Command: poll,
-				Callback: &PollCommandHandler{
-					Log:      log,
-					Database: db,
-					EventBus: eb,
-				},
+				Command:      poll,
+				Callback:     pollCommandHandler,
 				Autocomplete: nil,
 			},
 		},
 		eventbus: eb,
-		Log:      log,
-		Database: db,
 	}
 
 	for _, cmd := range h.commands {
@@ -64,3 +55,10 @@ func (h *Handler) GetCommands() []*discordgo.ApplicationCommand {
 
 	return commandsList
 }
+
+var NewFx = fx.Options(
+	fx.Provide(
+		newPolls,
+		New,
+	),
+)

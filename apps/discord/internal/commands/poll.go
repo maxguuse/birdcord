@@ -68,6 +68,18 @@ type PollCommandHandler struct {
 	EventBus *eventbus.EventBus
 }
 
+func newPolls(
+	log logger.Logger,
+	eb *eventbus.EventBus,
+	db *db.DB,
+) *PollCommandHandler {
+	return &PollCommandHandler{
+		Log:      log,
+		Database: db,
+		EventBus: eb,
+	}
+}
+
 func (p *PollCommandHandler) Handle(s *discordgo.Session, i any) {
 	cmd, ok := i.(*discordgo.Interaction)
 	if !ok {
