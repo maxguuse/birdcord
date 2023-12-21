@@ -1,32 +1,20 @@
-FROM golang:1.21.3-alpine as builder
+FROM golang:1.21.5-alpine as builder
 WORKDIR /app
 RUN apk add upx
-COPY apps apps
-COPY libs libs
+COPY . .
+RUN go work sync
 
-FROM builder as bot_builder
-RUN cd apps/bot && \
-    go mod download && \
+FROM builder as discord_builder
+RUN cd apps/discord && \
     CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o ./out ./cmd/main.go && upx -9 -k ./out
 
-FROM alpine:latest as bot
+FROM alpine:latest as discord
 WORKDIR /app
-COPY --from=bot_builder /app/apps/bot/out /bin/bot
-CMD ["/bin/bot"]
-
-FROM builder as polls_builder
-RUN cd apps/polls && \
-    go mod download && \
-    CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o ./out ./cmd/main.go && upx -9 -k ./out
-
-FROM alpine:latest as polls
-WORKDIR /app
-COPY --from=polls_builder /app/apps/polls/out /bin/polls
-CMD ["/bin/polls"]
+COPY --from=discord_builder /app/apps/discord/out /bin/discord
+CMD ["/bin/discord"]
 
 FROM builder as migrations_builder
 RUN cd libs/migrations && \
-    go mod download && \
     CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o ./out ./main.go && upx -9 -k ./out
 
 FROM alpine:latest as migrations

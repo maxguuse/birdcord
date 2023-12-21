@@ -15,29 +15,14 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-        delay: 5s
         max_attempts: 15
-  bot:
+  discord:
     build:
       context: .
       dockerfile: ./Dockerfile
-      target: bot
+      target: discord
     env_file: .env
     deploy:
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 15
-  polls:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-      target: polls
-    ports:
-      - "50051:50051"
-    env_file: .env
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
         max_attempts: 15
