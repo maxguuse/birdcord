@@ -15,9 +15,16 @@ type DB struct {
 }
 
 func New(cfg *config.Config) (*DB, error) {
-	pool, err := pgxpool.New(context.Background(), cfg.ConnectionString)
+	ctx := context.Background()
+
+	pool, err := pgxpool.New(ctx, cfg.ConnectionString)
 	if err != nil {
 		return nil, err
+	}
+
+	err = pool.Ping(ctx)
+	if err != nil {
+		panic(err)
 	}
 
 	return &DB{
