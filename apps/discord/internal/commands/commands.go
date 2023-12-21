@@ -16,12 +16,11 @@ type command struct {
 type Handler struct {
 	commands []*command
 	eventbus *eventbus.EventBus
-
-	pollCommandHandler *PollCommandHandler
 }
 
 func New(
 	eb *eventbus.EventBus,
+
 	pollCommandHandler *PollCommandHandler,
 ) *Handler {
 	h := &Handler{
