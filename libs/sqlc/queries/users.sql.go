@@ -34,3 +34,14 @@ func (q *Queries) GetUserByDiscordID(ctx context.Context, discordUserID string) 
 	err := row.Scan(&i.ID, &i.DiscordUserID)
 	return i, err
 }
+
+const getUserById = `-- name: GetUserById :one
+SELECT id, discord_user_id FROM users WHERE id = $1
+`
+
+func (q *Queries) GetUserById(ctx context.Context, id int32) (User, error) {
+	row := q.db.QueryRow(ctx, getUserById, id)
+	var i User
+	err := row.Scan(&i.ID, &i.DiscordUserID)
+	return i, err
+}

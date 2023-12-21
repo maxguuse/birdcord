@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/bwmarrin/discordgo"
@@ -187,30 +185,14 @@ func (p *PollCommandHandler) startPoll(
 			}
 		})
 
+		a := buildPollEmbed(
+			poll,
+			optionsList,
+			i.Member.User,
+			0,
+		)
 		discordMsg, sendMessageErr := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
-			Embeds: []*discordgo.MessageEmbed{
-				{
-					Title:       options["title"].StringValue(),
-					Description: strings.Join(optionsList, "\n"),
-					Timestamp:   poll.CreatedAt.Time.Format(time.RFC3339),
-					Color:       0x4d58d3,
-					Type:        discordgo.EmbedTypeRich,
-					Author: &discordgo.MessageEmbedAuthor{
-						Name:    i.Member.User.Username,
-						IconURL: i.Member.User.AvatarURL(""),
-					},
-					Footer: &discordgo.MessageEmbedFooter{
-						Text: fmt.Sprint("Poll ID: ", poll.ID),
-					},
-					Fields: []*discordgo.MessageEmbedField{
-						{
-							Name:   "Всего голосов",
-							Value:  "0",
-							Inline: true,
-						},
-					},
-				},
-			},
+			Embeds:     a,
 			Components: actionRows,
 		})
 		if sendMessageErr != nil {
@@ -289,6 +271,8 @@ type VoteButtonHandler struct {
 }
 
 func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
+	var err error
+
 	vote, ok := i.(*discordgo.Interaction)
 	if !ok {
 		return
@@ -315,44 +299,13 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 			return err
 		}
 		if user.ID == 0 {
-			var cuErr error
-			user, cuErr = q.CreateUser(ctx, vote.Member.User.ID)
-			if cuErr != nil {
-				return cuErr
+			user, err = q.CreateUser(ctx, vote.Member.User.ID)
+			if err != nil {
+				return err
 			}
 		}
 
 		poll, err := q.GetPoll(ctx, v.poll_id)
-		if err != nil {
-			return err
-		}
-
-		votesAmount, err := q.GetUserVoteForPollById(ctx, queries.GetUserVoteForPollByIdParams{
-			UserID: user.ID,
-			PollID: poll.ID,
-		})
-		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
-		if votesAmount > 0 {
-			return fmt.Errorf("you already voted for this poll")
-		}
-
-		err = q.AddVote(ctx, queries.AddVoteParams{
-			UserID:   user.ID,
-			PollID:   poll.ID,
-			OptionID: v.option_id,
-		})
-		if err != nil {
-			return err
-		}
-
-		author, err := q.GetUserById(ctx, poll.AuthorID.Int32)
-		if err != nil {
-			return err
-		}
-
-		discordUser, err := s.User(author.DiscordUserID)
 		if err != nil {
 			return err
 		}
@@ -367,14 +320,38 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 			return err
 		}
 
-		optionsList := lo.Map(pollOptions, func(option queries.PollOption, i int) string {
-			return fmt.Sprintf("%d. %s", i, option.Title)
+		err = q.AddVote(ctx, queries.AddVoteParams{
+			UserID:   user.ID,
+			PollID:   poll.ID,
+			OptionID: v.option_id,
 		})
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return fmt.Errorf("you already voted for this poll")
+		}
+		if err != nil && !errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return err
+		}
 
 		pollVotes, err := q.GetAllVotesForPollById(ctx, poll.ID)
 		if err != nil {
 			return err
 		}
+
+		author, err := q.GetUserById(ctx, poll.AuthorID.Int32)
+		if err != nil {
+			return err
+		}
+
+		discordAuthor, err := s.User(author.DiscordUserID)
+		if err != nil {
+			return err
+		}
+
+		optionsList := lo.Map(pollOptions, func(option queries.PollOption, i int) string {
+			return fmt.Sprintf("%d. %s", i, option.Title)
+		})
 
 		for _, msg := range pollMessages {
 			discordMsg, err := q.GetMessageById(ctx, msg.MessageID)
@@ -386,32 +363,18 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 				return err
 			}
 
+			pollEmbed := buildPollEmbed(
+				poll,
+				optionsList,
+				discordAuthor,
+				len(pollVotes),
+			)
+
 			_, err = s.ChannelMessageEditEmbeds(
 				discordMsg.DiscordChannelID,
 				discordMsg.DiscordMessageID,
-				[]*discordgo.MessageEmbed{
-					{
-						Title:       poll.Title,
-						Description: strings.Join(optionsList, "\n"),
-						Timestamp:   poll.CreatedAt.Time.Format(time.RFC3339),
-						Color:       0x4d58d3,
-						Type:        discordgo.EmbedTypeRich,
-						Author: &discordgo.MessageEmbedAuthor{
-							Name:    discordUser.Username,
-							IconURL: discordUser.AvatarURL(""),
-						},
-						Footer: &discordgo.MessageEmbedFooter{
-							Text: fmt.Sprint("Poll ID: ", poll.ID),
-						},
-						Fields: []*discordgo.MessageEmbedField{
-							{
-								Name:   "Всего голосов",
-								Value:  strconv.Itoa(len(pollVotes)),
-								Inline: true,
-							},
-						},
-					},
-				})
+				pollEmbed,
+			)
 			if err != nil {
 				return err
 			}
@@ -423,7 +386,7 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 	var pgErr *pgconn.PgError
 
 	if tErr != nil && errors.Is(tErr, pgErr) {
-		v.Log.Error("error creating poll", slog.String("error", tErr.Error()))
+		v.Log.Error("error registering vote", slog.String("error", tErr.Error()))
 		interactionResponseContent = "Произошла внутренняя ошибка при регистрации голоса"
 		_, err := s.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
 			Content: &interactionResponseContent,
@@ -436,7 +399,7 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 	}
 
 	if tErr != nil {
-		v.Log.Info("error creating poll", slog.String("error", tErr.Error()))
+		v.Log.Info("error registering vote", slog.String("error", tErr.Error()))
 		interactionResponseContent = "Произошла ошибка при регистрации голоса"
 		_, err := s.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
 			Content: &interactionResponseContent,
@@ -454,7 +417,7 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 	}
 
 	interactionResponseContent = "Голос засчитан!"
-	_, err := s.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
+	_, err = s.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
 		Content: &interactionResponseContent,
 	})
 	if err != nil {
