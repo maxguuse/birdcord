@@ -10,6 +10,39 @@ import (
 	"github.com/maxguuse/birdcord/libs/sqlc/queries"
 )
 
+func interactionRespondLoading(msg string, session *discordgo.Session, i *discordgo.Interaction) error {
+	err := session.InteractionRespond(i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: msg,
+			Flags:   discordgo.MessageFlagsEphemeral,
+		},
+	})
+
+	return err
+}
+
+func interactionRespondSuccess(msg string, session *discordgo.Session, i *discordgo.Interaction) error {
+	_, err := session.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+		Content: &msg,
+	})
+
+	return err
+}
+
+func interactionRespondError(msg string, inErr error, session *discordgo.Session, i *discordgo.Interaction) error {
+	_, err := session.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+		Content: &msg,
+		Embeds: &[]*discordgo.MessageEmbed{
+			{
+				Description: inErr.Error(),
+			},
+		},
+	})
+
+	return err
+}
+
 func buildCommandOptionsMap(i *discordgo.Interaction) map[string]*discordgo.ApplicationCommandInteractionDataOption {
 	commandOptions := make(map[string]*discordgo.ApplicationCommandInteractionDataOption)
 	for _, option := range i.ApplicationCommandData().Options[0].Options {

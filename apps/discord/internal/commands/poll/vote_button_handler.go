@@ -25,8 +25,6 @@ type VoteButtonHandler struct {
 }
 
 func (v *VoteButtonHandler) Handle(i any) {
-	var err error
-
 	vote, ok := i.(*discordgo.Interaction)
 	if !ok {
 		return
@@ -34,16 +32,15 @@ func (v *VoteButtonHandler) Handle(i any) {
 
 	ctx := context.Background()
 
-	interactionResponseContent := "Голос регистрируется..."
-	interactionRespondErr := v.Session.InteractionRespond(vote, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: interactionResponseContent,
-			Flags:   discordgo.MessageFlagsEphemeral,
-		},
-	})
-	if interactionRespondErr != nil {
-		v.Log.Error("error responding to interaction", slog.String("error", interactionRespondErr.Error()))
+	err := interactionRespondLoading(
+		"Голос регистрируется...",
+		v.Session, vote,
+	)
+	if err != nil {
+		v.Log.Error(
+			"error responding to interaction",
+			slog.String("error", err.Error()),
+		)
 		return
 	}
 
@@ -141,12 +138,16 @@ func (v *VoteButtonHandler) Handle(i any) {
 
 	if tErr != nil && errors.Is(tErr, pgErr) {
 		v.Log.Error("error registering vote", slog.String("error", tErr.Error()))
-		interactionResponseContent = "Произошла внутренняя ошибка при регистрации голоса"
-		_, err := v.Session.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
-			Content: &interactionResponseContent,
-		})
+		err := interactionRespondError(
+			"Произошла внутренняя ошибка при регистрации голоса",
+			fmt.Errorf("internal error"),
+			v.Session, vote,
+		)
 		if err != nil {
-			v.Log.Error("error editing an interaction", slog.String("error", err.Error()))
+			v.Log.Error(
+				"error editing an interaction",
+				slog.String("error", err.Error()),
+			)
 		}
 
 		return
@@ -154,27 +155,28 @@ func (v *VoteButtonHandler) Handle(i any) {
 
 	if tErr != nil {
 		v.Log.Info("error registering vote", slog.String("error", tErr.Error()))
-		interactionResponseContent = "Произошла ошибка при регистрации голоса"
-		_, err := v.Session.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
-			Content: &interactionResponseContent,
-			Embeds: &[]*discordgo.MessageEmbed{
-				{
-					Description: tErr.Error(),
-				},
-			},
-		})
+		err := interactionRespondError(
+			"Произошла ошибка при регистрации голоса",
+			tErr, v.Session, vote,
+		)
 		if err != nil {
-			v.Log.Error("error editing an interaction", slog.String("error", err.Error()))
+			v.Log.Error(
+				"error editing an interaction",
+				slog.String("error", err.Error()),
+			)
 		}
 
 		return
 	}
 
-	interactionResponseContent = "Голос засчитан!"
-	_, err = v.Session.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
-		Content: &interactionResponseContent,
-	})
+	err = interactionRespondSuccess(
+		"Голос зарегистрирован",
+		v.Session, vote,
+	)
 	if err != nil {
-		v.Log.Error("error editing an interaction", slog.String("error", err.Error()))
+		v.Log.Error(
+			"error editing an interaction",
+			slog.String("error", err.Error()),
+		)
 	}
 }
