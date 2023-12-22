@@ -2,6 +2,7 @@ package commands
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/commands/poll"
 	"github.com/maxguuse/birdcord/apps/discord/internal/eventbus"
 	"github.com/samber/lo"
 	"go.uber.org/fx"
@@ -21,12 +22,12 @@ type Handler struct {
 func New(
 	eb *eventbus.EventBus,
 
-	pollCommandHandler *PollCommandHandler,
+	pollCommandHandler *poll.CommandHandler,
 ) *Handler {
 	h := &Handler{
 		commands: []*command{
 			{
-				Command:      poll,
+				Command:      poll.Command,
 				Callback:     pollCommandHandler,
 				Autocomplete: nil,
 			},
@@ -57,7 +58,7 @@ func (h *Handler) GetCommands() []*discordgo.ApplicationCommand {
 
 var NewFx = fx.Options(
 	fx.Provide(
-		newPolls,
+		poll.NewCommandHandler,
 		New,
 	),
 )
