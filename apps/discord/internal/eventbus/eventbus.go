@@ -2,12 +2,10 @@ package eventbus
 
 import (
 	"sync"
-
-	"github.com/bwmarrin/discordgo"
 )
 
 type EventHandler interface {
-	Handle(*discordgo.Session, any)
+	Handle(any)
 }
 
 type EventBus struct {
@@ -27,7 +25,7 @@ func (eb *EventBus) Subscribe(e string, callback EventHandler) {
 	eb.subs[e] = append(eb.subs[e], callback)
 }
 
-func (eb *EventBus) Publish(e string, s *discordgo.Session, i any) {
+func (eb *EventBus) Publish(e string, i any) {
 	eb.mux.RLock()
 	defer eb.mux.RUnlock()
 
@@ -38,7 +36,7 @@ func (eb *EventBus) Publish(e string, s *discordgo.Session, i any) {
 
 	for _, callback := range handlers {
 		go func(callback EventHandler) {
-			callback.Handle(s, i)
+			callback.Handle(i)
 		}(callback)
 	}
 }

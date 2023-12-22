@@ -29,22 +29,14 @@ func New(
 	eb *eventbus.EventBus,
 	ch *commands.Handler,
 	cfg *config.Config,
+	s *discordgo.Session,
 ) {
 	client := &Client{
 		Log:             log,
 		Database:        db,
 		Eventbus:        eb,
 		CommandsHandler: ch,
-	}
-
-	if s, err := discordgo.New("Bot " + cfg.DiscordToken); err != nil {
-		log.Error(
-			"Error creating Discord session",
-			slog.String("error", err.Error()),
-		)
-		return
-	} else {
-		client.Session = s
+		Session:         s,
 	}
 
 	client.registerLogger()

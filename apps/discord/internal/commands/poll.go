@@ -64,21 +64,24 @@ type PollCommandHandler struct {
 	Log      logger.Logger
 	Database *db.DB
 	EventBus *eventbus.EventBus
+	Session  *discordgo.Session
 }
 
 func newPolls(
 	log logger.Logger,
 	eb *eventbus.EventBus,
 	db *db.DB,
+	s *discordgo.Session,
 ) *PollCommandHandler {
 	return &PollCommandHandler{
 		Log:      log,
 		Database: db,
 		EventBus: eb,
+		Session:  s,
 	}
 }
 
-func (p *PollCommandHandler) Handle(s *discordgo.Session, i any) {
+func (p *PollCommandHandler) Handle(i any) {
 	cmd, ok := i.(*discordgo.Interaction)
 	if !ok {
 		return
@@ -88,19 +91,18 @@ func (p *PollCommandHandler) Handle(s *discordgo.Session, i any) {
 
 	switch cmd.ApplicationCommandData().Options[0].Name {
 	case "start":
-		p.startPoll(s, cmd, commandOptions)
+		p.startPoll(cmd, commandOptions)
 	}
 }
 
 func (p *PollCommandHandler) startPoll(
-	s *discordgo.Session,
 	i *discordgo.Interaction,
 	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
 ) {
 	ctx := context.Background()
 
 	interactionResponseContent := "Опрос формируется..."
-	interactionRespondErr := s.InteractionRespond(i, &discordgo.InteractionResponse{
+	interactionRespondErr := p.Session.InteractionRespond(i, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: interactionResponseContent,
@@ -174,6 +176,7 @@ func (p *PollCommandHandler) startPoll(
 				option_id: pollOption.ID,
 				Log:       p.Log,
 				Database:  p.Database,
+				Session:   p.Session,
 			})
 
 			optionsList[i] = fmt.Sprintf("**%d.** %s", i+1, option)
@@ -191,7 +194,7 @@ func (p *PollCommandHandler) startPoll(
 			i.Member.User,
 			0,
 		)
-		discordMsg, sendMessageErr := s.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
+		discordMsg, sendMessageErr := p.Session.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
 			Embeds:     a,
 			Components: actionRows,
 		})
@@ -204,7 +207,7 @@ func (p *PollCommandHandler) startPoll(
 			DiscordChannelID: discordMsg.ChannelID,
 		})
 		if createMessageErr != nil {
-			deleteMessageErr := s.ChannelMessageDelete(i.ChannelID, discordMsg.ID)
+			deleteMessageErr := p.Session.ChannelMessageDelete(i.ChannelID, discordMsg.ID)
 			return errors.Join(createMessageErr, deleteMessageErr)
 		}
 
@@ -213,7 +216,7 @@ func (p *PollCommandHandler) startPoll(
 			MessageID: msg.ID,
 		})
 		if createPollMessageErr != nil {
-			deleteMessageErr := s.ChannelMessageDelete(i.ChannelID, discordMsg.ID)
+			deleteMessageErr := p.Session.ChannelMessageDelete(i.ChannelID, discordMsg.ID)
 			return errors.Join(createPollMessageErr, deleteMessageErr)
 		}
 
@@ -225,7 +228,7 @@ func (p *PollCommandHandler) startPoll(
 	if err != nil && errors.Is(err, pgErr) {
 		p.Log.Error("error creating poll", slog.String("error", err.Error()))
 		interactionResponseContent = "Произошла внутренняя ошибка при формировании опроса"
-		_, err := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+		_, err := p.Session.InteractionResponseEdit(i, &discordgo.WebhookEdit{
 			Content: &interactionResponseContent,
 		})
 		if err != nil {
@@ -238,7 +241,7 @@ func (p *PollCommandHandler) startPoll(
 	if err != nil {
 		p.Log.Error("error creating poll", slog.String("error", err.Error()))
 		interactionResponseContent = "Произошла ошибка при формировании опроса"
-		_, err := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+		_, err := p.Session.InteractionResponseEdit(i, &discordgo.WebhookEdit{
 			Content: &interactionResponseContent,
 			Embeds: &[]*discordgo.MessageEmbed{
 				{
@@ -254,7 +257,7 @@ func (p *PollCommandHandler) startPoll(
 	}
 
 	interactionResponseContent = "Опрос создан!"
-	_, interactionResponseEditErr := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+	_, interactionResponseEditErr := p.Session.InteractionResponseEdit(i, &discordgo.WebhookEdit{
 		Content: &interactionResponseContent,
 	})
 	if interactionResponseEditErr != nil {
@@ -268,9 +271,10 @@ type VoteButtonHandler struct {
 
 	Log      logger.Logger
 	Database *db.DB
+	Session  *discordgo.Session
 }
 
-func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
+func (v *VoteButtonHandler) Handle(i any) {
 	var err error
 
 	vote, ok := i.(*discordgo.Interaction)
@@ -281,7 +285,7 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 	ctx := context.Background()
 
 	interactionResponseContent := "Голос регистрируется..."
-	interactionRespondErr := s.InteractionRespond(vote, &discordgo.InteractionResponse{
+	interactionRespondErr := v.Session.InteractionRespond(vote, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: interactionResponseContent,
@@ -344,7 +348,7 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 			return err
 		}
 
-		discordAuthor, err := s.User(author.DiscordUserID)
+		discordAuthor, err := v.Session.User(author.DiscordUserID)
 		if err != nil {
 			return err
 		}
@@ -388,7 +392,7 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 	if tErr != nil && errors.Is(tErr, pgErr) {
 		v.Log.Error("error registering vote", slog.String("error", tErr.Error()))
 		interactionResponseContent = "Произошла внутренняя ошибка при регистрации голоса"
-		_, err := s.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
+		_, err := v.Session.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
 			Content: &interactionResponseContent,
 		})
 		if err != nil {
@@ -401,7 +405,7 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 	if tErr != nil {
 		v.Log.Info("error registering vote", slog.String("error", tErr.Error()))
 		interactionResponseContent = "Произошла ошибка при регистрации голоса"
-		_, err := s.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
+		_, err := v.Session.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
 			Content: &interactionResponseContent,
 			Embeds: &[]*discordgo.MessageEmbed{
 				{
@@ -417,7 +421,7 @@ func (v *VoteButtonHandler) Handle(s *discordgo.Session, i any) {
 	}
 
 	interactionResponseContent = "Голос засчитан!"
-	_, err = s.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
+	_, err = v.Session.InteractionResponseEdit(vote, &discordgo.WebhookEdit{
 		Content: &interactionResponseContent,
 	})
 	if err != nil {
