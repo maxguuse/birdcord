@@ -30,13 +30,13 @@ func (q *Queries) AddVote(ctx context.Context, arg AddVoteParams) error {
 	return err
 }
 
-const getAllVotesForPollById = `-- name: GetAllVotesForPollById :many
+const getPollVotes = `-- name: GetPollVotes :many
 SELECT id, poll_id, option_id, user_id FROM poll_votes
 WHERE poll_id = $1
 `
 
-func (q *Queries) GetAllVotesForPollById(ctx context.Context, pollID int32) ([]PollVote, error) {
-	rows, err := q.db.Query(ctx, getAllVotesForPollById, pollID)
+func (q *Queries) GetPollVotes(ctx context.Context, pollID int32) ([]PollVote, error) {
+	rows, err := q.db.Query(ctx, getPollVotes, pollID)
 	if err != nil {
 		return nil, err
 	}
@@ -60,18 +60,18 @@ func (q *Queries) GetAllVotesForPollById(ctx context.Context, pollID int32) ([]P
 	return items, nil
 }
 
-const getUserVoteForPollById = `-- name: GetUserVoteForPollById :one
+const getVote = `-- name: GetVote :one
 SELECT COUNT(*) FROM poll_votes 
 WHERE user_id = $1 AND poll_id = $2
 `
 
-type GetUserVoteForPollByIdParams struct {
+type GetVoteParams struct {
 	UserID int32 `json:"user_id"`
 	PollID int32 `json:"poll_id"`
 }
 
-func (q *Queries) GetUserVoteForPollById(ctx context.Context, arg GetUserVoteForPollByIdParams) (int64, error) {
-	row := q.db.QueryRow(ctx, getUserVoteForPollById, arg.UserID, arg.PollID)
+func (q *Queries) GetVote(ctx context.Context, arg GetVoteParams) (int64, error) {
+	row := q.db.QueryRow(ctx, getVote, arg.UserID, arg.PollID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err

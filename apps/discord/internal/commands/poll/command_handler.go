@@ -3,13 +3,13 @@ package poll
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/eventbus"
+	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/logger"
-	"github.com/maxguuse/birdcord/libs/sqlc/db"
 )
 
 type CommandHandler struct {
 	Log      logger.Logger
-	Database *db.DB
+	Database repository.DB
 	EventBus *eventbus.EventBus
 	Session  *discordgo.Session
 }
@@ -17,7 +17,7 @@ type CommandHandler struct {
 func NewCommandHandler(
 	log logger.Logger,
 	eb *eventbus.EventBus,
-	db *db.DB,
+	db repository.DB,
 	s *discordgo.Session,
 ) *CommandHandler {
 	return &CommandHandler{
@@ -39,5 +39,7 @@ func (p *CommandHandler) Handle(i any) {
 	switch cmd.ApplicationCommandData().Options[0].Name {
 	case "start":
 		p.startPoll(cmd, commandOptions)
+	case "stop":
+		p.stopPoll(cmd, commandOptions)
 	}
 }

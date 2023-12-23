@@ -1,8 +1,8 @@
--- name: GetUserVoteForPollById :one
+-- name: GetVote :one
 SELECT COUNT(*) FROM poll_votes 
 WHERE user_id = $1 AND poll_id = $2;
 
--- name: GetAllVotesForPollById :many
+-- name: GetPollVotes :many
 SELECT * FROM poll_votes
 WHERE poll_id = $1;
 

@@ -9,20 +9,6 @@ import (
 	"context"
 )
 
-const createGuilds = `-- name: CreateGuilds :execrows
-INSERT INTO guilds ("discord_guild_id") 
-VALUES (UNNEST($1::varchar[])) 
-ON CONFLICT ("discord_guild_id") DO NOTHING
-`
-
-func (q *Queries) CreateGuilds(ctx context.Context, discordGuildIds []string) (int64, error) {
-	result, err := q.db.Exec(ctx, createGuilds, discordGuildIds)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const getGuildByDiscordID = `-- name: GetGuildByDiscordID :one
 SELECT id, discord_guild_id FROM guilds WHERE discord_guild_id = $1
 `
@@ -32,4 +18,29 @@ func (q *Queries) GetGuildByDiscordID(ctx context.Context, discordGuildID string
 	var i Guild
 	err := row.Scan(&i.ID, &i.DiscordGuildID)
 	return i, err
+}
+
+const getGuildByID = `-- name: GetGuildByID :one
+SELECT id, discord_guild_id FROM guilds WHERE id = $1
+`
+
+func (q *Queries) GetGuildByID(ctx context.Context, id int32) (Guild, error) {
+	row := q.db.QueryRow(ctx, getGuildByID, id)
+	var i Guild
+	err := row.Scan(&i.ID, &i.DiscordGuildID)
+	return i, err
+}
+
+const syncGuilds = `-- name: SyncGuilds :execrows
+INSERT INTO guilds ("discord_guild_id") 
+VALUES (UNNEST($1::varchar[])) 
+ON CONFLICT ("discord_guild_id") DO NOTHING
+`
+
+func (q *Queries) SyncGuilds(ctx context.Context, discordGuildIds []string) (int64, error) {
+	result, err := q.db.Exec(ctx, syncGuilds, discordGuildIds)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

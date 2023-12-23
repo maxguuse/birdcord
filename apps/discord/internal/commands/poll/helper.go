@@ -1,13 +1,14 @@
 package poll
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/libs/sqlc/queries"
+	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 )
 
 func interactionRespondLoading(msg string, session *discordgo.Session, i *discordgo.Interaction) error {
@@ -31,14 +32,38 @@ func interactionRespondSuccess(msg string, session *discordgo.Session, i *discor
 }
 
 func interactionRespondError(msg string, inErr error, session *discordgo.Session, i *discordgo.Interaction) error {
-	_, err := session.InteractionResponseEdit(i, &discordgo.WebhookEdit{
-		Content: &msg,
-		Embeds: &[]*discordgo.MessageEmbed{
-			{
-				Description: inErr.Error(),
+	var err error
+
+	if errors.Is(inErr, domain.ErrInternal) {
+		_, err = session.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+			Content: &msg,
+			Embeds: &[]*discordgo.MessageEmbed{
+				{
+					Description: "internal error",
+				},
 			},
-		},
-	})
+		})
+	}
+
+	if errors.Is(inErr, domain.ErrUserSide) {
+		var response string
+		switch inErr {
+		case domain.ErrWrongPollOptionLength:
+			response = "Длина варианта опроса не может быть больше 50 символов"
+		case domain.ErrAlreadyVoted:
+			response = "Вы уже проголосовали в этом опросе"
+		default:
+			response = inErr.Error()
+		}
+		_, err = session.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+			Content: &msg,
+			Embeds: &[]*discordgo.MessageEmbed{
+				{
+					Description: response,
+				},
+			},
+		})
+	}
 
 	return err
 }
@@ -52,7 +77,7 @@ func buildCommandOptionsMap(i *discordgo.Interaction) map[string]*discordgo.Appl
 }
 
 func buildPollEmbed(
-	poll queries.Poll,
+	poll *domain.PollWithDetails,
 	optionsList []string,
 	user *discordgo.User,
 	votesAmount int,
@@ -61,7 +86,7 @@ func buildPollEmbed(
 		{
 			Title:       poll.Title,
 			Description: strings.Join(optionsList, "\n"),
-			Timestamp:   poll.CreatedAt.Time.Format(time.RFC3339),
+			Timestamp:   poll.CreatedAt.Format(time.RFC3339),
 			Color:       0x4d58d3,
 			Type:        discordgo.EmbedTypeRich,
 			Author: &discordgo.MessageEmbedAuthor{

@@ -2,16 +2,13 @@ package poll
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
+	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/logger"
-	"github.com/maxguuse/birdcord/libs/sqlc/db"
-	"github.com/maxguuse/birdcord/libs/sqlc/queries"
 	"github.com/samber/lo"
 )
 
@@ -20,8 +17,8 @@ type VoteButtonHandler struct {
 	option_id int32
 
 	Log      logger.Logger
-	Database *db.DB
 	Session  *discordgo.Session
+	Database repository.DB
 }
 
 func (v *VoteButtonHandler) Handle(i any) {
@@ -30,9 +27,39 @@ func (v *VoteButtonHandler) Handle(i any) {
 		return
 	}
 
+	var err error
+	defer func() {
+		if err != nil {
+			v.Log.Error("error registering vote", slog.String("error", err.Error()))
+			err := interactionRespondError(
+				"Произошла ошибка при регистрации голоса",
+				err, v.Session, vote,
+			)
+			if err != nil {
+				v.Log.Error(
+					"error editing an interaction",
+					slog.String("error", err.Error()),
+				)
+			}
+
+			return
+		}
+
+		err = interactionRespondSuccess(
+			"Голос зарегистрирован",
+			v.Session, vote,
+		)
+		if err != nil {
+			v.Log.Error(
+				"error editing an interaction",
+				slog.String("error", err.Error()),
+			)
+		}
+	}()
+
 	ctx := context.Background()
 
-	err := interactionRespondLoading(
+	err = interactionRespondLoading(
 		"Голос регистрируется...",
 		v.Session, vote,
 	)
@@ -44,139 +71,45 @@ func (v *VoteButtonHandler) Handle(i any) {
 		return
 	}
 
-	tErr := v.Database.Transaction(func(q *queries.Queries) error {
-		user, err := q.GetUserByDiscordID(ctx, vote.Member.User.ID)
-		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
-		if user.ID == 0 {
-			user, err = q.CreateUser(ctx, vote.Member.User.ID)
-			if err != nil {
-				return err
-			}
-		}
+	user, err := v.Database.Users().GetUserByDiscordID(ctx, vote.Member.User.ID)
+	if err != nil {
+		return
+	}
 
-		poll, err := q.GetPoll(ctx, v.poll_id)
-		if err != nil {
-			return err
-		}
+	poll, err := v.Database.Polls().GetPollWithDetails(ctx, int(v.poll_id))
+	if err != nil {
+		return
+	}
 
-		pollMessages, err := q.GetMessagesForPollById(ctx, poll.ID)
-		if err != nil {
-			return err
-		}
+	err = v.Database.Polls().TryAddVote(ctx, user.ID, poll.ID, int(v.option_id))
+	if err != nil {
+		return
+	}
 
-		pollOptions, err := q.GetPollOptions(ctx, poll.ID)
-		if err != nil {
-			return err
-		}
+	discordAuthor, err := v.Session.User(poll.Author.DiscordUserID)
+	if err != nil {
+		return
+	}
 
-		err = q.AddVote(ctx, queries.AddVoteParams{
-			UserID:   user.ID,
-			PollID:   poll.ID,
-			OptionID: v.option_id,
-		})
-
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return fmt.Errorf("you already voted for this poll")
-		}
-		if err != nil && !errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return err
-		}
-
-		pollVotes, err := q.GetAllVotesForPollById(ctx, poll.ID)
-		if err != nil {
-			return err
-		}
-
-		author, err := q.GetUserById(ctx, poll.AuthorID.Int32)
-		if err != nil {
-			return err
-		}
-
-		discordAuthor, err := v.Session.User(author.DiscordUserID)
-		if err != nil {
-			return err
-		}
-
-		optionsList := lo.Map(pollOptions, func(option queries.PollOption, i int) string {
-			return fmt.Sprintf("%d. %s", i, option.Title)
-		})
-
-		for _, msg := range pollMessages {
-			discordMsg, err := q.GetMessageById(ctx, msg.MessageID)
-			if errors.Is(err, pgx.ErrNoRows) {
-				continue
-			}
-
-			if err != nil {
-				return err
-			}
-
-			pollEmbed := buildPollEmbed(
-				poll,
-				optionsList,
-				discordAuthor,
-				len(pollVotes),
-			)
-
-			_, err = v.Session.ChannelMessageEditEmbeds(
-				discordMsg.DiscordChannelID,
-				discordMsg.DiscordMessageID,
-				pollEmbed,
-			)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
+	optionsList := lo.Map(poll.Options, func(option domain.PollOption, i int) string {
+		return fmt.Sprintf("**%d**. %s", i+1, option.Title)
 	})
 
-	var pgErr *pgconn.PgError
+	for _, msg := range poll.Messages {
+		pollEmbed := buildPollEmbed(
+			poll,
+			optionsList,
+			discordAuthor,
+			len(poll.Votes)+1,
+		)
 
-	if tErr != nil && errors.Is(tErr, pgErr) {
-		v.Log.Error("error registering vote", slog.String("error", tErr.Error()))
-		err := interactionRespondError(
-			"Произошла внутренняя ошибка при регистрации голоса",
-			fmt.Errorf("internal error"),
-			v.Session, vote,
+		_, err = v.Session.ChannelMessageEditEmbeds(
+			msg.DiscordChannelID,
+			msg.DiscordMessageID,
+			pollEmbed,
 		)
 		if err != nil {
-			v.Log.Error(
-				"error editing an interaction",
-				slog.String("error", err.Error()),
-			)
+			return
 		}
-
-		return
-	}
-
-	if tErr != nil {
-		v.Log.Info("error registering vote", slog.String("error", tErr.Error()))
-		err := interactionRespondError(
-			"Произошла ошибка при регистрации голоса",
-			tErr, v.Session, vote,
-		)
-		if err != nil {
-			v.Log.Error(
-				"error editing an interaction",
-				slog.String("error", err.Error()),
-			)
-		}
-
-		return
-	}
-
-	err = interactionRespondSuccess(
-		"Голос зарегистрирован",
-		v.Session, vote,
-	)
-	if err != nil {
-		v.Log.Error(
-			"error editing an interaction",
-			slog.String("error", err.Error()),
-		)
 	}
 }

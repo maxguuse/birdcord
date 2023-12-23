@@ -12,22 +12,12 @@ func (c *Client) onMessageDelete(_ *discordgo.Session, m *discordgo.MessageDelet
 	ctx := context.Background()
 
 	err := c.Database.Transaction(func(q *queries.Queries) error {
-		discordMsg, err := q.GetMessageByDiscordID(ctx, m.ID)
+		msg, err := q.GetMessageByDiscordID(ctx, m.ID)
 		if err != nil {
 			return err
 		}
 
-		pollMsg, err := q.GetPollMessageById(ctx, discordMsg.ID)
-		if err != nil {
-			return err
-		}
-
-		err = q.DeletePollMessageById(ctx, pollMsg.ID)
-		if err != nil {
-			return err
-		}
-
-		err = q.DeleteMessageById(ctx, discordMsg.ID)
+		err = q.DeleteMessageById(ctx, msg.ID)
 		if err != nil {
 			return err
 		}

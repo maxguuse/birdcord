@@ -52,7 +52,7 @@ ALTER TABLE "polls" ADD FOREIGN KEY ("author_id") REFERENCES "users" ("id");
 ALTER TABLE "polls" ADD FOREIGN KEY ("guild_id") REFERENCES "guilds" ("id");
 ALTER TABLE "poll_options" ADD FOREIGN KEY ("poll_id") REFERENCES "polls" ("id");
 ALTER TABLE "poll_messages" ADD FOREIGN KEY ("poll_id") REFERENCES "polls" ("id");
-ALTER TABLE "poll_messages" ADD FOREIGN KEY ("message_id") REFERENCES "messages" ("id");
+ALTER TABLE "poll_messages" ADD FOREIGN KEY ("message_id") REFERENCES "messages" ("id") ON DELETE CASCADE;
 ALTER TABLE "poll_votes" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
 ALTER TABLE "poll_votes" ADD FOREIGN KEY ("poll_id") REFERENCES "polls" ("id");
 ALTER TABLE "poll_votes" ADD FOREIGN KEY ("option_id") REFERENCES "poll_options" ("id");

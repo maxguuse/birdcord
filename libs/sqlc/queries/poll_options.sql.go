@@ -30,6 +30,41 @@ func (q *Queries) CreatePollOption(ctx context.Context, arg CreatePollOptionPara
 	return i, err
 }
 
+const createPollOptions = `-- name: CreatePollOptions :many
+INSERT INTO poll_options ("title", "poll_id") 
+VALUES (UNNEST($1::varchar[]), $2)
+RETURNING poll_options.id, poll_options.title, poll_options.poll_id
+`
+
+type CreatePollOptionsParams struct {
+	Titles []string `json:"titles"`
+	PollID int32    `json:"poll_id"`
+}
+
+type CreatePollOptionsRow struct {
+	PollOption PollOption `json:"poll_option"`
+}
+
+func (q *Queries) CreatePollOptions(ctx context.Context, arg CreatePollOptionsParams) ([]CreatePollOptionsRow, error) {
+	rows, err := q.db.Query(ctx, createPollOptions, arg.Titles, arg.PollID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CreatePollOptionsRow
+	for rows.Next() {
+		var i CreatePollOptionsRow
+		if err := rows.Scan(&i.PollOption.ID, &i.PollOption.Title, &i.PollOption.PollID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPollOptions = `-- name: GetPollOptions :many
 SELECT id, title, poll_id FROM poll_options
 WHERE poll_id = $1
