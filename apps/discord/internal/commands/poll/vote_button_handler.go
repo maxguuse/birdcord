@@ -2,6 +2,7 @@ package poll
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -88,6 +89,7 @@ func (v *VoteButtonHandler) Handle(i any) {
 
 	discordAuthor, err := v.Session.User(poll.Author.DiscordUserID)
 	if err != nil {
+		err = errors.Join(domain.ErrInternal, err)
 		return
 	}
 
@@ -109,7 +111,8 @@ func (v *VoteButtonHandler) Handle(i any) {
 			pollEmbed,
 		)
 		if err != nil {
-			return
+			err = errors.Join(domain.ErrInternal, err)
+			v.Log.Error("error editing poll message", slog.String("error", err.Error()))
 		}
 	}
 }

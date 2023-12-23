@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	postgres "github.com/maxguuse/birdcord/libs/sqlc/db"
@@ -34,7 +35,10 @@ func (g *guildsRepository) GetGuildByDiscordID(
 	err := g.q.Transaction(func(q *queries.Queries) error {
 		guild, err := q.GetGuildByDiscordID(ctx, id)
 		if err != nil {
-			return err
+			return errors.Join(
+				domain.ErrInternal,
+				err,
+			)
 		}
 
 		result.ID = int(guild.ID)

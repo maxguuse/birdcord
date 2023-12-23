@@ -131,7 +131,7 @@ func (p *pollsRepository) GetPollWithDetails(
 
 		user, err := q.GetUserById(ctx, poll.AuthorID.Int32)
 		if err != nil {
-			return err
+			return errors.Join(domain.ErrInternal, err)
 		}
 
 		result.Author = domain.PollAuthor{
@@ -141,7 +141,7 @@ func (p *pollsRepository) GetPollWithDetails(
 
 		guild, err := q.GetGuildByID(ctx, poll.GuildID)
 		if err != nil {
-			return err
+			return errors.Join(domain.ErrInternal, err)
 		}
 
 		result.Guild = domain.PollGuild{
@@ -151,7 +151,7 @@ func (p *pollsRepository) GetPollWithDetails(
 
 		pollMessages, err := q.GetFullPollMessages(ctx, poll.ID)
 		if err != nil {
-			return err
+			return errors.Join(domain.ErrInternal, err)
 		}
 
 		result.Messages = lo.Map(
@@ -167,7 +167,7 @@ func (p *pollsRepository) GetPollWithDetails(
 
 		pollOptions, err := q.GetPollOptions(ctx, poll.ID)
 		if err != nil {
-			return err
+			return errors.Join(domain.ErrInternal, err)
 		}
 
 		result.Options = lo.Map(pollOptions, func(o queries.PollOption, _ int) domain.PollOption {
@@ -179,7 +179,7 @@ func (p *pollsRepository) GetPollWithDetails(
 
 		pollVotes, err := q.GetPollVotes(ctx, poll.ID)
 		if err != nil {
-			return err
+			return errors.Join(domain.ErrInternal, err)
 		}
 
 		result.Votes = lo.Map(pollVotes, func(v queries.PollVote, _ int) domain.PollVote {
@@ -217,14 +217,14 @@ func (p *pollsRepository) TryAddVote(
 				domain.ErrAlreadyVoted,
 			)
 		}
+		if err != nil {
+			return errors.Join(domain.ErrInternal, err)
+		}
 
 		return nil
 	})
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (p *pollsRepository) CreatePollMessage(

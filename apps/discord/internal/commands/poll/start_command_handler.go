@@ -63,7 +63,7 @@ func (p *CommandHandler) startPoll(
 
 	rawOptions := options["options"].StringValue()
 	optionsList := strings.Split(rawOptions, "|")
-	if len(optionsList) < 2 {
+	if len(optionsList) < 2 || len(optionsList) > 25 {
 		err = errors.Join(
 			domain.ErrUserSide,
 			domain.ErrWrongPollOptionsAmount,
@@ -133,6 +133,7 @@ func (p *CommandHandler) startPoll(
 		Components: actionRows,
 	})
 	if err != nil {
+		err = errors.Join(domain.ErrInternal, err)
 		return
 	}
 
@@ -143,7 +144,7 @@ func (p *CommandHandler) startPoll(
 	)
 	if err != nil {
 		deleteErr := p.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
-		err = errors.Join(deleteErr, err)
+		err = errors.Join(domain.ErrInternal, deleteErr, err)
 		return
 	}
 }

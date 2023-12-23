@@ -20,7 +20,14 @@ func interactionRespondLoading(msg string, session *discordgo.Session, i *discor
 		},
 	})
 
-	return err
+	if err != nil {
+		return errors.Join(
+			domain.ErrInternal,
+			err,
+		)
+	}
+
+	return nil
 }
 
 func interactionRespondSuccess(msg string, session *discordgo.Session, i *discordgo.Interaction) error {
@@ -47,11 +54,13 @@ func interactionRespondError(msg string, inErr error, session *discordgo.Session
 
 	if errors.Is(inErr, domain.ErrUserSide) {
 		var response string
-		switch inErr {
-		case domain.ErrWrongPollOptionLength:
+		switch {
+		case errors.Is(inErr, domain.ErrWrongPollOptionLength):
 			response = "Длина варианта опроса не может быть больше 50 символов"
-		case domain.ErrAlreadyVoted:
+		case errors.Is(inErr, domain.ErrAlreadyVoted):
 			response = "Вы уже проголосовали в этом опросе"
+		case errors.Is(inErr, domain.ErrWrongPollOptionsAmount):
+			response = "Количество вариантов опроса должно быть от 2 до 25 включительно"
 		default:
 			response = inErr.Error()
 		}
