@@ -69,6 +69,7 @@ func (v *VoteButtonHandler) Handle(i any) {
 			"error responding to interaction",
 			slog.String("error", err.Error()),
 		)
+
 		return
 	}
 
@@ -90,6 +91,7 @@ func (v *VoteButtonHandler) Handle(i any) {
 	discordAuthor, err := v.Session.User(poll.Author.DiscordUserID)
 	if err != nil {
 		err = errors.Join(domain.ErrInternal, err)
+
 		return
 	}
 

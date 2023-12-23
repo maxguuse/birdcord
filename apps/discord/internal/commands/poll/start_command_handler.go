@@ -58,6 +58,7 @@ func (p *CommandHandler) startPoll(
 			"error responding to interaction",
 			slog.String("error", err.Error()),
 		)
+
 		return
 	}
 
@@ -68,6 +69,7 @@ func (p *CommandHandler) startPoll(
 			domain.ErrUserSide,
 			domain.ErrWrongPollOptionsAmount,
 		)
+
 		return
 	}
 	if lo.SomeBy(optionsList, func(o string) bool {
@@ -77,6 +79,7 @@ func (p *CommandHandler) startPoll(
 			domain.ErrUserSide,
 			domain.ErrWrongPollOptionLength,
 		)
+
 		return
 	}
 
@@ -134,6 +137,7 @@ func (p *CommandHandler) startPoll(
 	})
 	if err != nil {
 		err = errors.Join(domain.ErrInternal, err)
+
 		return
 	}
 
@@ -145,6 +149,7 @@ func (p *CommandHandler) startPoll(
 	if err != nil {
 		deleteErr := p.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
 		err = errors.Join(domain.ErrInternal, deleteErr, err)
+
 		return
 	}
 }

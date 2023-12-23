@@ -49,7 +49,7 @@ func (p *CommandHandler) stopPoll(
 			"error responding to interaction",
 			slog.String("error", err.Error()),
 		)
+
 		return
 	}
-
 }

@@ -82,6 +82,7 @@ func buildCommandOptionsMap(i *discordgo.Interaction) map[string]*discordgo.Appl
 	for _, option := range i.ApplicationCommandData().Options[0].Options {
 		commandOptions[option.Name] = option
 	}
+
 	return commandOptions
 }
 
