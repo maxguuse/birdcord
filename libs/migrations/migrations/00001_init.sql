@@ -22,6 +22,7 @@ CREATE TABLE "messages" (
 CREATE TABLE "polls" (
     "id" serial PRIMARY KEY,
     "title" varchar(100) NOT NULL,
+    "is_active" bool DEFAULT true NOT NULL,
     "created_at" timestamp DEFAULT now(),
     "guild_id" int NOT NULL,
     "author_id" int

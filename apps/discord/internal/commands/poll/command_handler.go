@@ -5,6 +5,7 @@ import (
 	"github.com/maxguuse/birdcord/apps/discord/internal/eventbus"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/logger"
+	"go.uber.org/fx"
 )
 
 type CommandHandler struct {
@@ -14,17 +15,21 @@ type CommandHandler struct {
 	Session  *discordgo.Session
 }
 
-func NewCommandHandler(
-	log logger.Logger,
-	eb *eventbus.EventBus,
-	db repository.DB,
-	s *discordgo.Session,
-) *CommandHandler {
+type CommandHandlerOpts struct {
+	fx.In
+
+	Log      logger.Logger
+	Database repository.DB
+	EventBus *eventbus.EventBus
+	Session  *discordgo.Session
+}
+
+func NewCommandHandler(opts CommandHandlerOpts) *CommandHandler {
 	return &CommandHandler{
-		Log:      log,
-		Database: db,
-		EventBus: eb,
-		Session:  s,
+		Log:      opts.Log,
+		Database: opts.Database,
+		EventBus: opts.EventBus,
+		Session:  opts.Session,
 	}
 }
 

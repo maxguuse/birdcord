@@ -46,9 +46,10 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 			slog.String("id", g.ID),
 			slog.String("name", g.Name),
 		)
+
 		return g.ID
 	})
-	newGuildsCount, err := c.Database.Queries().SyncGuilds(context.Background(), guildsIds)
+	newGuildsCount, err := c.Database.Queries().CreateGuilds(context.Background(), guildsIds)
 	if err != nil {
 		c.Log.Error(
 			"Error creating guilds",

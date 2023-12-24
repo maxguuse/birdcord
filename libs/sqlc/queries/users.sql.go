@@ -24,6 +24,24 @@ func (q *Queries) CreateUser(ctx context.Context, discordUserID string) (User, e
 	return i, err
 }
 
+const deleteUserByDiscordID = `-- name: DeleteUserByDiscordID :exec
+DELETE FROM users WHERE discord_user_id = $1
+`
+
+func (q *Queries) DeleteUserByDiscordID(ctx context.Context, discordUserID string) error {
+	_, err := q.db.Exec(ctx, deleteUserByDiscordID, discordUserID)
+	return err
+}
+
+const deleteUserById = `-- name: DeleteUserById :exec
+DELETE FROM users WHERE id = $1
+`
+
+func (q *Queries) DeleteUserById(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deleteUserById, id)
+	return err
+}
+
 const getUserByDiscordID = `-- name: GetUserByDiscordID :one
 SELECT id, discord_user_id FROM users WHERE discord_user_id = $1
 `

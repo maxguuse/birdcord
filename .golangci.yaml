@@ -33,17 +33,6 @@ linters-settings:
     min-complexity: 3
   protogetter:
     skip-any-generated: true
-  wrapcheck:
-    ignoreSigs:
-      - .Errorf(
-      - errors.New(
-      - errors.Unwrap(
-      - .Wrap(
-      - .Wrapf(
-      - .WithMessage(
-      - .WithMessagef(
-      - .WithStack(
-      - .Join(
 linters:
   disable-all: true
 
@@ -54,7 +43,7 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-    - asciicheck
+    
     - bodyclose
     - containedctx
     - contextcheck
@@ -83,6 +72,5 @@ linters:
     - reassign
     - unconvert
     - wastedassign
-    - wrapcheck
     - whitespace
 

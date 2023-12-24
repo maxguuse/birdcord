@@ -2,9 +2,13 @@ package poll
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
+	"github.com/samber/lo"
 )
 
 func (p *CommandHandler) stopPoll(
@@ -41,7 +45,7 @@ func (p *CommandHandler) stopPoll(
 		}
 	}()
 
-	_ = context.Background()
+	ctx := context.Background()
 
 	err = interactionRespondLoading("Опрос останавливается...", p.Session, i)
 	if err != nil {
@@ -49,6 +53,95 @@ func (p *CommandHandler) stopPoll(
 			"error responding to interaction",
 			slog.String("error", err.Error()),
 		)
+
+		return
+	}
+
+	optionsWithVotes := make(map[domain.PollOption]int)
+
+	pollId := options["poll"].IntValue()
+
+	poll, err := p.Database.Polls().GetPollWithDetails(ctx, int(pollId))
+	if err != nil {
+		err = errors.Join(domain.ErrInternal, err)
+
+		return
+	}
+
+	if poll.Author.DiscordUserID != i.Member.User.ID {
+		err = errors.Join(domain.ErrUserSide, domain.ErrNotAuthor)
+
+		return
+	}
+
+	if poll.Guild.DiscordGuildID != i.GuildID {
+		err = errors.Join(domain.ErrUserSide, domain.ErrWrongGuild)
+
+		return
+	}
+
+	var maxVotes, totalVotes int = 0, 0
+	for _, option := range poll.Options {
+		optionVotes := lo.Filter(poll.Votes, func(v domain.PollVote, _ int) bool {
+			return v.OptionID == option.ID
+		})
+		optionVotesAmount := len(optionVotes)
+
+		optionsWithVotes[option] = optionVotesAmount
+
+		if optionVotesAmount > maxVotes {
+			maxVotes = optionVotesAmount
+		}
+
+		totalVotes += optionVotesAmount
+	}
+
+	winners := make([]domain.PollOption, 0, len(poll.Options))
+
+	for _, option := range poll.Options {
+		if optionsWithVotes[option] == maxVotes {
+			winners = append(winners, option)
+		}
+	}
+
+	discordAuthor, err := p.Session.User(poll.Author.DiscordUserID)
+	if err != nil {
+		err = errors.Join(domain.ErrInternal, err)
+
+		return
+	}
+
+	winnersList := lo.Map(winners, func(option domain.PollOption, _ int) string {
+		return option.Title
+	})
+
+	for _, msg := range poll.Messages {
+		pollEmbed := buildPollEmbed(
+			poll,
+			discordAuthor,
+		)
+
+		pollEmbed[0].Fields = append(pollEmbed[0].Fields, &discordgo.MessageEmbedField{
+			Name:   "Победители",
+			Value:  strings.Join(winnersList, ","),
+			Inline: true,
+		})
+
+		_, err = p.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
+			ID:         msg.DiscordMessageID,
+			Channel:    msg.DiscordChannelID,
+			Embeds:     pollEmbed,
+			Components: make([]discordgo.MessageComponent, 0),
+		})
+		if err != nil {
+			err = errors.Join(domain.ErrInternal, err)
+			p.Log.Error("error editing poll message", slog.String("error", err.Error()))
+		}
+	}
+
+	err = p.Database.Polls().UpdatePollStatus(ctx, int(pollId), false)
+	if err != nil {
+		err = errors.Join(domain.ErrInternal, err)
 
 		return
 	}

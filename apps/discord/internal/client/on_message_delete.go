@@ -26,6 +26,7 @@ func (c *Client) onMessageDelete(_ *discordgo.Session, m *discordgo.MessageDelet
 	})
 	if err != nil {
 		c.Log.Error("error deleting message", slog.String("error", err.Error()))
+
 		return
 	}
 	c.Log.Info(

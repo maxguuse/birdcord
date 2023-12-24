@@ -9,6 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
+	"github.com/samber/lo"
 )
 
 func interactionRespondLoading(msg string, session *discordgo.Session, i *discordgo.Interaction) error {
@@ -56,11 +57,15 @@ func interactionRespondError(msg string, inErr error, session *discordgo.Session
 		var response string
 		switch {
 		case errors.Is(inErr, domain.ErrWrongPollOptionLength):
-			response = "Длина варианта опроса не может быть больше 50 символов"
+			response = "Длина варианта опроса не может быть больше 50 или меньше 1 символа"
 		case errors.Is(inErr, domain.ErrAlreadyVoted):
 			response = "Вы уже проголосовали в этом опросе"
 		case errors.Is(inErr, domain.ErrWrongPollOptionsAmount):
 			response = "Количество вариантов опроса должно быть от 2 до 25 включительно"
+		case errors.Is(inErr, domain.ErrNotAuthor):
+			response = "Для остановки опроса нужно быть его автором"
+		case errors.Is(inErr, domain.ErrWrongGuild):
+			response = "Опроса не существует"
 		default:
 			response = inErr.Error()
 		}
@@ -88,10 +93,12 @@ func buildCommandOptionsMap(i *discordgo.Interaction) map[string]*discordgo.Appl
 
 func buildPollEmbed(
 	poll *domain.PollWithDetails,
-	optionsList []string,
 	user *discordgo.User,
-	votesAmount int,
 ) []*discordgo.MessageEmbed {
+	optionsList := lo.Map(poll.Options, func(option domain.PollOption, i int) string {
+		return fmt.Sprintf("**%d**. %s", i+1, option.Title)
+	})
+
 	return []*discordgo.MessageEmbed{
 		{
 			Title:       poll.Title,
@@ -109,7 +116,7 @@ func buildPollEmbed(
 			Fields: []*discordgo.MessageEmbedField{
 				{
 					Name:   "Всего голосов",
-					Value:  strconv.Itoa(votesAmount),
+					Value:  strconv.Itoa(len(poll.Votes)),
 					Inline: true,
 				},
 			},

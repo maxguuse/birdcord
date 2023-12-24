@@ -14,3 +14,6 @@ SELECT * FROM messages WHERE discord_message_id = $1;
 
 -- name: DeleteMessageById :exec
 DELETE FROM messages WHERE id = $1;
+
+-- name: DeleteMessageByDiscordID :exec
+DELETE FROM messages WHERE discord_message_id = $1;

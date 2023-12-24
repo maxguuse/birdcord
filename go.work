@@ -1,9 +1,7 @@
 go 1.21.5
 
 use (
-	./apps/bot
 	./apps/discord
-	./apps/polls
 	./libs/config
 	./libs/grpc
 	./libs/logger

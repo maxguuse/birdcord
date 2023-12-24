@@ -23,13 +23,14 @@ func New(
 	eb *eventbus.EventBus,
 
 	pollCommandHandler *poll.CommandHandler,
+	pollAutocompleteHandler *poll.AutocompleteHandler,
 ) *Handler {
 	h := &Handler{
 		commands: []*command{
 			{
 				Command:      poll.Command,
 				Callback:     pollCommandHandler,
-				Autocomplete: nil,
+				Autocomplete: pollAutocompleteHandler,
 			},
 		},
 		eventbus: eb,
@@ -58,6 +59,7 @@ func (h *Handler) GetCommands() []*discordgo.ApplicationCommand {
 
 var NewFx = fx.Options(
 	fx.Provide(
+		poll.NewAutocompleteHandler,
 		poll.NewCommandHandler,
 		New,
 	),

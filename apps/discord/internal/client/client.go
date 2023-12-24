@@ -49,6 +49,7 @@ func New(
 					"Error opening connection",
 					slog.String("error", err.Error()),
 				)
+
 				return err
 			}
 
@@ -60,8 +61,10 @@ func New(
 					"Error closing connection",
 					slog.String("error", err.Error()),
 				)
+
 				return err
 			}
+
 			return nil
 		},
 	})

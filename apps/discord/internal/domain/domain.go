@@ -9,8 +9,9 @@ type Poll struct {
 }
 
 type PollDetails struct {
-	Guild  PollGuild
-	Author PollAuthor
+	IsActive bool
+	Guild    PollGuild
+	Author   PollAuthor
 
 	Options  []PollOption
 	Messages []PollMessage

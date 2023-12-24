@@ -30,6 +30,15 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 	return i, err
 }
 
+const deleteMessageByDiscordID = `-- name: DeleteMessageByDiscordID :exec
+DELETE FROM messages WHERE discord_message_id = $1
+`
+
+func (q *Queries) DeleteMessageByDiscordID(ctx context.Context, discordMessageID string) error {
+	_, err := q.db.Exec(ctx, deleteMessageByDiscordID, discordMessageID)
+	return err
+}
+
 const deleteMessageById = `-- name: DeleteMessageById :exec
 DELETE FROM messages WHERE id = $1
 `

@@ -9,14 +9,14 @@ import (
 	"context"
 )
 
-const addVote = `-- name: AddVote :exec
+const addVote = `-- name: AddVote :one
 INSERT INTO poll_votes (
     user_id, 
     poll_id, 
     option_id
 ) VALUES (
     $1, $2, $3
-)
+) RETURNING id, poll_id, option_id, user_id
 `
 
 type AddVoteParams struct {
@@ -25,9 +25,16 @@ type AddVoteParams struct {
 	OptionID int32 `json:"option_id"`
 }
 
-func (q *Queries) AddVote(ctx context.Context, arg AddVoteParams) error {
-	_, err := q.db.Exec(ctx, addVote, arg.UserID, arg.PollID, arg.OptionID)
-	return err
+func (q *Queries) AddVote(ctx context.Context, arg AddVoteParams) (PollVote, error) {
+	row := q.db.QueryRow(ctx, addVote, arg.UserID, arg.PollID, arg.OptionID)
+	var i PollVote
+	err := row.Scan(
+		&i.ID,
+		&i.PollID,
+		&i.OptionID,
+		&i.UserID,
+	)
+	return i, err
 }
 
 const getPollVotes = `-- name: GetPollVotes :many

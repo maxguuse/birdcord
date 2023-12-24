@@ -18,7 +18,7 @@ INSERT INTO polls (
     guild_id
 ) VALUES (
     $1, $2, $3
-) RETURNING id, title, created_at, guild_id, author_id
+) RETURNING id, title, is_active, created_at, guild_id, author_id
 `
 
 type CreatePollParams struct {
@@ -33,6 +33,7 @@ func (q *Queries) CreatePoll(ctx context.Context, arg CreatePollParams) (Poll, e
 	err := row.Scan(
 		&i.ID,
 		&i.Title,
+		&i.IsActive,
 		&i.CreatedAt,
 		&i.GuildID,
 		&i.AuthorID,
@@ -40,8 +41,44 @@ func (q *Queries) CreatePoll(ctx context.Context, arg CreatePollParams) (Poll, e
 	return i, err
 }
 
+const getActivePolls = `-- name: GetActivePolls :many
+SELECT id, title, is_active, created_at, guild_id, author_id FROM polls WHERE is_active = true AND guild_id = $1 AND author_id = $2
+`
+
+type GetActivePollsParams struct {
+	GuildID  int32       `json:"guild_id"`
+	AuthorID pgtype.Int4 `json:"author_id"`
+}
+
+func (q *Queries) GetActivePolls(ctx context.Context, arg GetActivePollsParams) ([]Poll, error) {
+	rows, err := q.db.Query(ctx, getActivePolls, arg.GuildID, arg.AuthorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Poll
+	for rows.Next() {
+		var i Poll
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.GuildID,
+			&i.AuthorID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPoll = `-- name: GetPoll :one
-SELECT id, title, created_at, guild_id, author_id FROM polls WHERE id = $1
+SELECT id, title, is_active, created_at, guild_id, author_id FROM polls WHERE id = $1
 `
 
 func (q *Queries) GetPoll(ctx context.Context, id int32) (Poll, error) {
@@ -50,9 +87,24 @@ func (q *Queries) GetPoll(ctx context.Context, id int32) (Poll, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Title,
+		&i.IsActive,
 		&i.CreatedAt,
 		&i.GuildID,
 		&i.AuthorID,
 	)
 	return i, err
+}
+
+const updatePollStatus = `-- name: UpdatePollStatus :exec
+UPDATE polls SET "is_active" = $2 WHERE id = $1
+`
+
+type UpdatePollStatusParams struct {
+	ID       int32 `json:"id"`
+	IsActive bool  `json:"is_active"`
+}
+
+func (q *Queries) UpdatePollStatus(ctx context.Context, arg UpdatePollStatusParams) error {
+	_, err := q.db.Exec(ctx, updatePollStatus, arg.ID, arg.IsActive)
+	return err
 }

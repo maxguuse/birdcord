@@ -62,24 +62,8 @@ func (p *CommandHandler) startPoll(
 		return
 	}
 
-	rawOptions := options["options"].StringValue()
-	optionsList := strings.Split(rawOptions, "|")
-	if len(optionsList) < 2 || len(optionsList) > 25 {
-		err = errors.Join(
-			domain.ErrUserSide,
-			domain.ErrWrongPollOptionsAmount,
-		)
-
-		return
-	}
-	if lo.SomeBy(optionsList, func(o string) bool {
-		return utf8.RuneCountInString(o) > 50
-	}) {
-		err = errors.Join(
-			domain.ErrUserSide,
-			domain.ErrWrongPollOptionLength,
-		)
-
+	optionsList, err := processPollOptions(options["options"].StringValue())
+	if err != nil {
 		return
 	}
 
@@ -104,6 +88,36 @@ func (p *CommandHandler) startPoll(
 		return
 	}
 
+	actionRows := p.buildActionRows(poll, optionsList)
+
+	pollEmbed := buildPollEmbed(poll, i.Member.User)
+	msg, err := p.Session.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
+		Embeds:     pollEmbed,
+		Components: actionRows,
+	})
+	if err != nil {
+		err = errors.Join(domain.ErrInternal, err)
+
+		return
+	}
+
+	_, err = p.Database.Polls().CreatePollMessage(
+		ctx,
+		msg.ID, msg.ChannelID,
+		poll.ID,
+	)
+	if err != nil {
+		deleteErr := p.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
+		err = errors.Join(domain.ErrInternal, deleteErr, err)
+
+		return
+	}
+}
+
+func (p *CommandHandler) buildActionRows(
+	poll *domain.PollWithDetails,
+	optionsList []string,
+) []discordgo.MessageComponent {
 	buttons := make([]discordgo.MessageComponent, 0, len(poll.Options))
 	for i, option := range poll.Options {
 		customId := fmt.Sprintf("poll_%d_option_%d", poll.ID, option.ID)
@@ -130,26 +144,25 @@ func (p *CommandHandler) startPoll(
 		}
 	})
 
-	pollEmbed := buildPollEmbed(poll, optionsList, i.Member.User, 0)
-	msg, err := p.Session.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
-		Embeds:     pollEmbed,
-		Components: actionRows,
-	})
-	if err != nil {
-		err = errors.Join(domain.ErrInternal, err)
+	return actionRows
+}
 
-		return
+func processPollOptions(rawOptions string) ([]string, error) {
+	optionsList := strings.Split(rawOptions, "|")
+	if len(optionsList) < 2 || len(optionsList) > 25 {
+		return nil, errors.Join(
+			domain.ErrUserSide,
+			domain.ErrWrongPollOptionsAmount,
+		)
+	}
+	if lo.SomeBy(optionsList, func(o string) bool {
+		return utf8.RuneCountInString(o) > 50 || utf8.RuneCountInString(o) < 1
+	}) {
+		return nil, errors.Join(
+			domain.ErrUserSide,
+			domain.ErrWrongPollOptionLength,
+		)
 	}
 
-	_, err = p.Database.Polls().CreatePollMessage(
-		ctx,
-		msg.ID, msg.ChannelID,
-		poll.ID,
-	)
-	if err != nil {
-		deleteErr := p.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
-		err = errors.Join(domain.ErrInternal, deleteErr, err)
-
-		return
-	}
+	return optionsList, nil
 }

@@ -22,6 +22,7 @@ type Message struct {
 type Poll struct {
 	ID        int32            `json:"id"`
 	Title     string           `json:"title"`
+	IsActive  bool             `json:"is_active"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	GuildID   int32            `json:"guild_id"`
 	AuthorID  pgtype.Int4      `json:"author_id"`

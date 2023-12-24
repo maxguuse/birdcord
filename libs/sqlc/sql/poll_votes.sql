@@ -6,11 +6,11 @@ WHERE user_id = $1 AND poll_id = $2;
 SELECT * FROM poll_votes
 WHERE poll_id = $1;
 
--- name: AddVote :exec
+-- name: AddVote :one
 INSERT INTO poll_votes (
     user_id, 
     poll_id, 
     option_id
 ) VALUES (
     $1, $2, $3
-);
+) RETURNING *;

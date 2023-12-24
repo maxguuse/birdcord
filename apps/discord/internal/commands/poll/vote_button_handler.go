@@ -3,14 +3,12 @@ package poll
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/logger"
-	"github.com/samber/lo"
 )
 
 type VoteButtonHandler struct {
@@ -83,10 +81,12 @@ func (v *VoteButtonHandler) Handle(i any) {
 		return
 	}
 
-	err = v.Database.Polls().TryAddVote(ctx, user.ID, poll.ID, int(v.option_id))
+	newVote, err := v.Database.Polls().TryAddVote(ctx, user.ID, poll.ID, int(v.option_id))
 	if err != nil {
 		return
 	}
+
+	poll.Votes = append(poll.Votes, *newVote)
 
 	discordAuthor, err := v.Session.User(poll.Author.DiscordUserID)
 	if err != nil {
@@ -95,16 +95,10 @@ func (v *VoteButtonHandler) Handle(i any) {
 		return
 	}
 
-	optionsList := lo.Map(poll.Options, func(option domain.PollOption, i int) string {
-		return fmt.Sprintf("**%d**. %s", i+1, option.Title)
-	})
-
 	for _, msg := range poll.Messages {
 		pollEmbed := buildPollEmbed(
 			poll,
-			optionsList,
 			discordAuthor,
-			len(poll.Votes)+1,
 		)
 
 		_, err = v.Session.ChannelMessageEditEmbeds(
