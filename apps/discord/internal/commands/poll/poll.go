@@ -42,5 +42,19 @@ var Command = &discordgo.ApplicationCommand{
 				},
 			},
 		},
+		{
+			Name:        "status",
+			Description: "Статус опроса",
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:         "poll",
+					Description:  "Опрос",
+					Type:         discordgo.ApplicationCommandOptionInteger,
+					Required:     true,
+					Autocomplete: true,
+				},
+			},
+		},
 	},
 }

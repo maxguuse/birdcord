@@ -22,27 +22,31 @@ type Client struct {
 	CommandsHandler *commands.Handler
 }
 
-func New(
-	lc fx.Lifecycle,
-	log logger.Logger,
-	db *db.DB,
-	eb *eventbus.EventBus,
-	ch *commands.Handler,
-	cfg *config.Config,
-	s *discordgo.Session,
-) {
+type ClientOpts struct {
+	fx.In
+	LC fx.Lifecycle
+
+	Log      logger.Logger
+	Database *db.DB
+	EB       *eventbus.EventBus
+	CH       *commands.Handler
+	Cfg      *config.Config
+	S        *discordgo.Session
+}
+
+func New(opts ClientOpts) {
 	client := &Client{
-		Log:             log,
-		Database:        db,
-		Eventbus:        eb,
-		CommandsHandler: ch,
-		Session:         s,
+		Log:             opts.Log,
+		Database:        opts.Database,
+		Eventbus:        opts.EB,
+		CommandsHandler: opts.CH,
+		Session:         opts.S,
 	}
 
 	client.registerLogger()
 	client.registerHandlers()
 
-	lc.Append(fx.Hook{
+	opts.LC.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			if err := client.Open(); err != nil {
 				client.Log.Error(

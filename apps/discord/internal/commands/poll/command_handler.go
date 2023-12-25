@@ -46,5 +46,7 @@ func (p *CommandHandler) Handle(i any) {
 		p.startPoll(cmd, commandOptions)
 	case "stop":
 		p.stopPoll(cmd, commandOptions)
+	case "status":
+		p.statusPoll(cmd, commandOptions)
 	}
 }

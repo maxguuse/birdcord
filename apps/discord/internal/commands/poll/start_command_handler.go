@@ -88,10 +88,20 @@ func (p *CommandHandler) startPoll(
 		return
 	}
 
-	actionRows := p.buildActionRows(poll, optionsList)
+	msg, err := p.Session.ChannelMessageSend(i.ChannelID, "Bird думает...")
+	if err != nil {
+		err = errors.Join(domain.ErrInternal, err)
 
+		return
+	}
+
+	actionRows := p.buildActionRows(poll, msg, optionsList)
 	pollEmbed := buildPollEmbed(poll, i.Member.User)
-	msg, err := p.Session.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
+
+	_, err = p.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
+		ID:         msg.ID,
+		Channel:    msg.ChannelID,
+		Content:    new(string),
 		Embeds:     pollEmbed,
 		Components: actionRows,
 	})
@@ -106,6 +116,7 @@ func (p *CommandHandler) startPoll(
 		msg.ID, msg.ChannelID,
 		poll.ID,
 	)
+
 	if err != nil {
 		deleteErr := p.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
 		err = errors.Join(domain.ErrInternal, deleteErr, err)
@@ -116,11 +127,12 @@ func (p *CommandHandler) startPoll(
 
 func (p *CommandHandler) buildActionRows(
 	poll *domain.PollWithDetails,
+	msg *discordgo.Message,
 	optionsList []string,
 ) []discordgo.MessageComponent {
 	buttons := make([]discordgo.MessageComponent, 0, len(poll.Options))
 	for i, option := range poll.Options {
-		customId := fmt.Sprintf("poll_%d_option_%d", poll.ID, option.ID)
+		customId := fmt.Sprintf("poll_%d_option_%d_msg_%s", poll.ID, option.ID, msg.ID)
 		buttons = append(buttons, discordgo.Button{
 			Label:    option.Title,
 			Style:    discordgo.PrimaryButton,

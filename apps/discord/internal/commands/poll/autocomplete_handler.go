@@ -48,11 +48,13 @@ func (p *AutocompleteHandler) Handle(i any) {
 
 	switch cmd.ApplicationCommandData().Options[0].Name {
 	case "stop":
-		p.autocompleteStopPoll(cmd, commandOptions)
+		p.autocompletePollList(cmd, commandOptions)
+	case "status":
+		p.autocompletePollList(cmd, commandOptions)
 	}
 }
 
-func (a *AutocompleteHandler) autocompleteStopPoll(
+func (a *AutocompleteHandler) autocompletePollList(
 	i *discordgo.Interaction,
 	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
 ) {
