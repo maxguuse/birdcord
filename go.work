@@ -1,3 +1,11 @@
-go 1.21.3
+go 1.21.5
 
-use ./apps/bot
+use (
+	./apps/discord
+	./libs/config
+	./libs/grpc
+	./libs/logger
+	./libs/migrations
+	./libs/pubsub
+	./libs/sqlc
+)

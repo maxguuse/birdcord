@@ -1,0 +1,76 @@
+run:
+  timeout: 3m
+  concurrency: 1
+  tests: false
+  allow-parallel-runners: false
+  go: '1.21'
+linters-settings:
+  errcheck:
+    check-blank: true
+    exclude-functions:
+      - encoding/json.Marshal
+      - encoding/json.MarshalIndent
+  cyclop:
+    skip-tests: true
+  decorder:
+    disable-init-func-first-check: false
+  dogsled:
+    max-blank-identifiers: 1
+  errchkjson:
+    check-error-free-encoding: true
+    report-no-exported: true        
+  funlen:
+    lines: 70
+    statements: -1
+    ignore-comments: true
+  goconst:
+    ignore-tests: true
+    numbers: true
+  gosec:
+    exclude-generated: true
+    concurrency: 1
+  nestif:
+    min-complexity: 3
+  protogetter:
+    skip-any-generated: true
+linters:
+  disable-all: true
+
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    - decorder
+    - dogsled
+    - durationcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - exportloopref
+    - forcetypeassert
+    - funlen
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gosec
+    - ireturn
+    - lll
+    - nestif
+    - nlreturn
+    - perfsprint
+    - protogetter
+    - reassign
+    - unconvert
+    - wastedassign
+    - whitespace
+
