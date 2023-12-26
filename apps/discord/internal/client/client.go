@@ -6,19 +6,23 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands"
-	"github.com/maxguuse/birdcord/apps/discord/internal/eventbus"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
+	"github.com/maxguuse/birdcord/libs/pubsub"
 	"github.com/maxguuse/birdcord/libs/sqlc/db"
 	"go.uber.org/fx"
 )
+
+func NewSession(cfg *config.Config) (*discordgo.Session, error) {
+	return discordgo.New("Bot " + cfg.DiscordToken)
+}
 
 type Client struct {
 	*discordgo.Session
 
 	Log             logger.Logger
 	Database        *db.DB
-	Eventbus        *eventbus.EventBus
+	Pubsub          pubsub.PubSub
 	CommandsHandler *commands.Handler
 }
 
@@ -26,21 +30,21 @@ type ClientOpts struct {
 	fx.In
 	LC fx.Lifecycle
 
-	Log      logger.Logger
-	Database *db.DB
-	EB       *eventbus.EventBus
-	CH       *commands.Handler
-	Cfg      *config.Config
-	S        *discordgo.Session
+	Log             logger.Logger
+	Database        *db.DB
+	Pubsub          pubsub.PubSub
+	Cfg             *config.Config
+	Session         *discordgo.Session
+	CommandsHandler *commands.Handler
 }
 
-func New(opts ClientOpts) {
+func New(opts ClientOpts) *Client {
 	client := &Client{
 		Log:             opts.Log,
 		Database:        opts.Database,
-		Eventbus:        opts.EB,
-		CommandsHandler: opts.CH,
-		Session:         opts.S,
+		Pubsub:          opts.Pubsub,
+		Session:         opts.Session,
+		CommandsHandler: opts.CommandsHandler,
 	}
 
 	client.registerLogger()
@@ -72,4 +76,15 @@ func New(opts ClientOpts) {
 			return nil
 		},
 	})
+
+	return client
 }
+
+var NewFx = fx.Options(
+	fx.Provide(
+		NewSession,
+	),
+	fx.Invoke(
+		New,
+	),
+)

@@ -6,5 +6,6 @@ use (
 	./libs/grpc
 	./libs/logger
 	./libs/migrations
+	./libs/pubsub
 	./libs/sqlc
 )

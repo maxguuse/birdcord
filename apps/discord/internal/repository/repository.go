@@ -9,18 +9,10 @@ var NewFx = fx.Options(
 	fx.Provide(
 		postgres.New,
 
-		fx.Annotate(
-			NewGuildsRepository,
-			fx.As(new(GuildsRepository)),
-		),
-		fx.Annotate(
-			NewPollsRepository,
-			fx.As(new(PollsRepository)),
-		),
-		fx.Annotate(
-			NewUsersRepository,
-			fx.As(new(UsersRepository)),
-		),
+		NewGuildsRepository,
+		NewPollsRepository,
+		NewUsersRepository,
+
 		fx.Annotate(
 			NewDB,
 			fx.As(new(DB)),

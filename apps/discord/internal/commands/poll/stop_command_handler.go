@@ -11,20 +11,20 @@ import (
 	"github.com/samber/lo"
 )
 
-func (p *CommandHandler) stopPoll(
+func (h *Handler) stopPoll(
 	i *discordgo.Interaction,
 	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
 ) {
 	var err error
 	defer func() {
 		if err != nil {
-			p.Log.Error("error creating poll", slog.String("error", err.Error()))
+			h.Log.Error("error creating poll", slog.String("error", err.Error()))
 			err := interactionRespondError(
 				"Произошла ошибка при остановке опроса",
-				err, p.Session, i,
+				err, h.Session, i,
 			)
 			if err != nil {
-				p.Log.Error(
+				h.Log.Error(
 					"error editing an interaction",
 					slog.String("error", err.Error()),
 				)
@@ -35,10 +35,10 @@ func (p *CommandHandler) stopPoll(
 
 		err = interactionRespondSuccess(
 			"Опрос остановлен!",
-			p.Session, i,
+			h.Session, i,
 		)
 		if err != nil {
-			p.Log.Error(
+			h.Log.Error(
 				"error editing an interaction",
 				slog.String("error", err.Error()),
 			)
@@ -47,9 +47,9 @@ func (p *CommandHandler) stopPoll(
 
 	ctx := context.Background()
 
-	err = interactionRespondLoading("Опрос останавливается...", p.Session, i)
+	err = interactionRespondLoading("Опрос останавливается...", h.Session, i)
 	if err != nil {
-		p.Log.Error(
+		h.Log.Error(
 			"error responding to interaction",
 			slog.String("error", err.Error()),
 		)
@@ -61,7 +61,7 @@ func (p *CommandHandler) stopPoll(
 
 	pollId := options["poll"].IntValue()
 
-	poll, err := p.Database.Polls().GetPollWithDetails(ctx, int(pollId))
+	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
 	if err != nil {
 		err = errors.Join(domain.ErrInternal, err)
 
@@ -104,7 +104,7 @@ func (p *CommandHandler) stopPoll(
 		}
 	}
 
-	discordAuthor, err := p.Session.User(poll.Author.DiscordUserID)
+	discordAuthor, err := h.Session.User(poll.Author.DiscordUserID)
 	if err != nil {
 		err = errors.Join(domain.ErrInternal, err)
 
@@ -127,7 +127,7 @@ func (p *CommandHandler) stopPoll(
 			Inline: true,
 		})
 
-		_, err = p.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
+		_, err = h.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
 			ID:         msg.DiscordMessageID,
 			Channel:    msg.DiscordChannelID,
 			Embeds:     pollEmbed,
@@ -135,11 +135,11 @@ func (p *CommandHandler) stopPoll(
 		})
 		if err != nil {
 			err = errors.Join(domain.ErrInternal, err)
-			p.Log.Error("error editing poll message", slog.String("error", err.Error()))
+			h.Log.Error("error editing poll message", slog.String("error", err.Error()))
 		}
 	}
 
-	err = p.Database.Polls().UpdatePollStatus(ctx, int(pollId), false)
+	err = h.Database.Polls().UpdatePollStatus(ctx, int(pollId), false)
 	if err != nil {
 		err = errors.Join(domain.ErrInternal, err)
 

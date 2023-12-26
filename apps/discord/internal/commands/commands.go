@@ -3,64 +3,64 @@ package commands
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands/poll"
-	"github.com/maxguuse/birdcord/apps/discord/internal/eventbus"
-	"github.com/samber/lo"
+	"github.com/maxguuse/birdcord/libs/pubsub"
 	"go.uber.org/fx"
 )
 
-type command struct {
-	Command      *discordgo.ApplicationCommand
-	Callback     eventbus.EventHandler
-	Autocomplete eventbus.EventHandler
+type Command interface {
+	Command() *discordgo.ApplicationCommand
+	Callback() func(i *discordgo.Interaction)
+	Autocomplete() (func(i *discordgo.Interaction), bool)
 }
 
 type Handler struct {
-	commands []*command
-	eventbus *eventbus.EventBus
+	Commands []Command
+	Session  *discordgo.Session
+	Pubsub   pubsub.PubSub
 }
 
-func New(
-	eb *eventbus.EventBus,
+type HandlerOpts struct {
+	fx.In
 
-	pollCommandHandler *poll.CommandHandler,
-	pollAutocompleteHandler *poll.AutocompleteHandler,
-) *Handler {
-	h := &Handler{
-		commands: []*command{
-			{
-				Command:      poll.Command,
-				Callback:     pollCommandHandler,
-				Autocomplete: pollAutocompleteHandler,
-			},
+	Pubsub  pubsub.PubSub
+	Session *discordgo.Session
+
+	PollHandler *poll.Handler
+}
+
+func New(opts HandlerOpts) *Handler {
+	return &Handler{
+		Commands: []Command{
+			opts.PollHandler,
 		},
-		eventbus: eb,
+		Session: opts.Session,
+		Pubsub:  opts.Pubsub,
 	}
-
-	for _, cmd := range h.commands {
-		if cmd.Callback != nil {
-			go h.eventbus.Subscribe(cmd.Command.Name+":command", cmd.Callback)
-		}
-
-		if cmd.Autocomplete != nil {
-			go h.eventbus.Subscribe(cmd.Command.Name+":autocomplete", cmd.Autocomplete)
-		}
-	}
-
-	return h
 }
 
-func (h *Handler) GetCommands() []*discordgo.ApplicationCommand {
-	commandsList := lo.Map(h.commands, func(c *command, _ int) *discordgo.ApplicationCommand {
-		return c.Command
-	})
+func (h *Handler) Register() error {
+	discordCommands := make([]*discordgo.ApplicationCommand, 0, len(h.Commands))
 
-	return commandsList
+	for _, cmd := range h.Commands {
+		discordCommands = append(discordCommands, cmd.Command())
+
+		go h.Pubsub.Subscribe(cmd.Command().Name+":command", cmd.Callback())
+
+		if callback, exists := cmd.Autocomplete(); exists {
+			go h.Pubsub.Subscribe(cmd.Command().Name+":autocomplete", callback)
+		}
+	}
+
+	_, err := h.Session.ApplicationCommandBulkOverwrite(h.Session.State.User.ID, "", discordCommands)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 var NewFx = fx.Options(
-	fx.Provide(
-		poll.NewAutocompleteHandler,
-		poll.NewCommandHandler,
-		New,
-	),
+	poll.NewFx,
+
+	fx.Provide(New),
 )

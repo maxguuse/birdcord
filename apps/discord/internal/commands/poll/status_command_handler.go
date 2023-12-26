@@ -10,20 +10,20 @@ import (
 	"github.com/samber/lo"
 )
 
-func (p *CommandHandler) statusPoll(
+func (h *Handler) statusPoll(
 	i *discordgo.Interaction,
 	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
 ) {
 	var err error
 	defer func() {
 		if err != nil {
-			p.Log.Error("error creating poll", slog.String("error", err.Error()))
+			h.Log.Error("error creating poll", slog.String("error", err.Error()))
 			err := interactionRespondError(
 				"Произошла ошибка при формировании состояния опроса",
-				err, p.Session, i,
+				err, h.Session, i,
 			)
 			if err != nil {
-				p.Log.Error(
+				h.Log.Error(
 					"error editing an interaction",
 					slog.String("error", err.Error()),
 				)
@@ -34,10 +34,10 @@ func (p *CommandHandler) statusPoll(
 
 		err = interactionRespondSuccess(
 			"Состояние опроса сформировано!",
-			p.Session, i,
+			h.Session, i,
 		)
 		if err != nil {
-			p.Log.Error(
+			h.Log.Error(
 				"error editing an interaction",
 				slog.String("error", err.Error()),
 			)
@@ -48,10 +48,10 @@ func (p *CommandHandler) statusPoll(
 
 	err = interactionRespondLoading(
 		"Состояние опроса формируется...",
-		p.Session, i,
+		h.Session, i,
 	)
 	if err != nil {
-		p.Log.Error(
+		h.Log.Error(
 			"error responding to interaction",
 			slog.String("error", err.Error()),
 		)
@@ -61,7 +61,7 @@ func (p *CommandHandler) statusPoll(
 
 	pollId := options["poll"].IntValue()
 
-	poll, err := p.Database.Polls().GetPollWithDetails(ctx, int(pollId))
+	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
 	if err != nil {
 		err = errors.Join(domain.ErrInternal, err)
 
@@ -80,19 +80,19 @@ func (p *CommandHandler) statusPoll(
 		return
 	}
 
-	msg, err := p.Session.ChannelMessageSend(i.ChannelID, "Bird думает...")
+	msg, err := h.Session.ChannelMessageSend(i.ChannelID, "Bird думает...")
 	if err != nil {
 		err = errors.Join(domain.ErrInternal, err)
 
 		return
 	}
 
-	actionRows := p.buildActionRows(poll, msg, lo.Map(poll.Options, func(option domain.PollOption, _ int) string {
+	actionRows := h.buildActionRows(poll, msg, lo.Map(poll.Options, func(option domain.PollOption, _ int) string {
 		return option.Title
 	}))
 	pollEmbed := buildPollEmbed(poll, i.Member.User)
 
-	_, err = p.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
+	_, err = h.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
 		ID:         msg.ID,
 		Channel:    msg.ChannelID,
 		Content:    new(string),
@@ -105,13 +105,13 @@ func (p *CommandHandler) statusPoll(
 		return
 	}
 
-	_, err = p.Database.Polls().CreatePollMessage(
+	_, err = h.Database.Polls().CreatePollMessage(
 		ctx,
 		msg.ID, msg.ChannelID,
 		poll.ID,
 	)
 	if err != nil {
-		deleteErr := p.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
+		deleteErr := h.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
 		err = errors.Join(domain.ErrInternal, deleteErr, err)
 
 		return

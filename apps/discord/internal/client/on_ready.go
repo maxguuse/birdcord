@@ -15,6 +15,11 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 		slog.String("session_id", r.SessionID),
 	)
 
+	err := c.CommandsHandler.Register()
+	if err != nil {
+		panic(err)
+	}
+
 	if err := c.UpdateStatusComplex(discordgo.UpdateStatusData{
 		Status: string(discordgo.StatusOnline),
 		AFK:    false,
@@ -27,15 +32,6 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 	}); err != nil {
 		c.Log.Error(
 			"Error updating status",
-			slog.String("error", err.Error()),
-		)
-	}
-
-	cmds := c.CommandsHandler.GetCommands()
-
-	if _, err := c.ApplicationCommandBulkOverwrite(c.State.User.ID, "", cmds); err != nil {
-		c.Log.Error(
-			"Error overwriting commands",
 			slog.String("error", err.Error()),
 		)
 	}
@@ -57,7 +53,7 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 		)
 	} else {
 		c.Log.Info(
-			"Synced guilds",
+			"Created guilds",
 			slog.Int("new", int(newGuildsCount)),
 		)
 	}

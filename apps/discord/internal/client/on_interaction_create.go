@@ -13,18 +13,21 @@ func (c *Client) onInteractionCreate(_ *discordgo.Session, i *discordgo.Interact
 			slog.String("command", i.ApplicationCommandData().Name),
 			slog.String("user", i.Member.User.Username),
 		)
-		c.Eventbus.Publish(i.ApplicationCommandData().Name+":command", i.Interaction)
+
+		c.Pubsub.Publish(i.ApplicationCommandData().Name+":command", i.Interaction)
 	case discordgo.InteractionApplicationCommandAutocomplete:
 		c.Log.Info("Got autocomplete",
 			slog.String("command", i.ApplicationCommandData().Name),
 			slog.String("user", i.Member.User.Username),
 		)
-		c.Eventbus.Publish(i.ApplicationCommandData().Name+":autocomplete", i.Interaction)
+
+		c.Pubsub.Publish(i.ApplicationCommandData().Name+":autocomplete", i.Interaction)
 	case discordgo.InteractionMessageComponent:
 		c.Log.Info("Got message component",
 			slog.String("custom_id", i.MessageComponentData().CustomID),
 			slog.String("user", i.Member.User.Username),
 		)
-		c.Eventbus.Publish(i.MessageComponentData().CustomID, i.Interaction)
+
+		c.Pubsub.Publish(i.MessageComponentData().CustomID, i.Interaction)
 	}
 }
