@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/samber/lo"
 )
@@ -19,46 +20,11 @@ func (h *Handler) startPoll(
 ) {
 	var err error
 	defer func() {
+		err = helpers.InteractionResponseProcess(h.Session, i, "Опрос создан.", err)
 		if err != nil {
-			h.Log.Error("error creating poll", slog.String("error", err.Error()))
-			err := interactionRespondError(
-				"Произошла ошибка при создании опроса",
-				err, h.Session, i,
-			)
-			if err != nil {
-				h.Log.Error(
-					"error editing an interaction",
-					slog.String("error", err.Error()),
-				)
-			}
-
-			return
-		}
-
-		err = interactionRespondSuccess(
-			"Опрос создан!",
-			h.Session, i,
-		)
-		if err != nil {
-			h.Log.Error(
-				"error editing an interaction",
-				slog.String("error", err.Error()),
-			)
+			h.Log.Error("error editing an interaction response", slog.String("error", err.Error()))
 		}
 	}()
-
-	err = interactionRespondLoading(
-		"Опрос формируется...",
-		h.Session, i,
-	)
-	if err != nil {
-		h.Log.Error(
-			"error responding to interaction",
-			slog.String("error", err.Error()),
-		)
-
-		return
-	}
 
 	ctx := context.Background()
 
@@ -112,9 +78,7 @@ func (h *Handler) startPoll(
 	}
 
 	_, err = h.Database.Polls().CreatePollMessage(
-		ctx,
-		msg.ID, msg.ChannelID,
-		poll.ID,
+		ctx, msg.ID, msg.ChannelID, poll.ID,
 	)
 
 	if err != nil {

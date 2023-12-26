@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/samber/lo"
 )
@@ -17,45 +18,13 @@ func (h *Handler) stopPoll(
 ) {
 	var err error
 	defer func() {
+		err = helpers.InteractionResponseProcess(h.Session, i, "Опрос остановлен.", err)
 		if err != nil {
-			h.Log.Error("error creating poll", slog.String("error", err.Error()))
-			err := interactionRespondError(
-				"Произошла ошибка при остановке опроса",
-				err, h.Session, i,
-			)
-			if err != nil {
-				h.Log.Error(
-					"error editing an interaction",
-					slog.String("error", err.Error()),
-				)
-			}
-
-			return
-		}
-
-		err = interactionRespondSuccess(
-			"Опрос остановлен!",
-			h.Session, i,
-		)
-		if err != nil {
-			h.Log.Error(
-				"error editing an interaction",
-				slog.String("error", err.Error()),
-			)
+			h.Log.Error("error editing an interaction response", slog.String("error", err.Error()))
 		}
 	}()
 
 	ctx := context.Background()
-
-	err = interactionRespondLoading("Опрос останавливается...", h.Session, i)
-	if err != nil {
-		h.Log.Error(
-			"error responding to interaction",
-			slog.String("error", err.Error()),
-		)
-
-		return
-	}
 
 	optionsWithVotes := make(map[domain.PollOption]int)
 
@@ -80,7 +49,7 @@ func (h *Handler) stopPoll(
 		return
 	}
 
-	var maxVotes, totalVotes int = 0, 0
+	var maxVotes int = 0
 	for _, option := range poll.Options {
 		optionVotes := lo.Filter(poll.Votes, func(v domain.PollVote, _ int) bool {
 			return v.OptionID == option.ID
@@ -92,8 +61,6 @@ func (h *Handler) stopPoll(
 		if optionVotesAmount > maxVotes {
 			maxVotes = optionVotesAmount
 		}
-
-		totalVotes += optionVotesAmount
 	}
 
 	winners := make([]domain.PollOption, 0, len(poll.Options))

@@ -1,15 +1,11 @@
 package poll
 
 import (
-	"context"
-	"fmt"
-	"strings"
-
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/logger"
 	"github.com/maxguuse/birdcord/libs/pubsub"
-	"github.com/samber/lo"
 	"go.uber.org/fx"
 )
 
@@ -54,7 +50,7 @@ func (h *Handler) Command() *discordgo.ApplicationCommand {
 
 func (h *Handler) Callback() func(i *discordgo.Interaction) {
 	return func(i *discordgo.Interaction) {
-		commandOptions := buildCommandOptionsMap(i)
+		commandOptions := helpers.BuildOptionsMap(i)
 
 		switch i.ApplicationCommandData().Options[0].Name {
 		case "start":
@@ -69,7 +65,7 @@ func (h *Handler) Callback() func(i *discordgo.Interaction) {
 
 func (h *Handler) Autocomplete() (func(i *discordgo.Interaction), bool) {
 	return func(i *discordgo.Interaction) {
-		commandOptions := buildCommandOptionsMap(i)
+		commandOptions := helpers.BuildOptionsMap(i)
 
 		switch i.ApplicationCommandData().Options[0].Name {
 		case "stop":
@@ -78,53 +74,6 @@ func (h *Handler) Autocomplete() (func(i *discordgo.Interaction), bool) {
 			h.autocompletePollList(i, commandOptions)
 		}
 	}, true
-}
-
-func (h *Handler) autocompletePollList(
-	i *discordgo.Interaction,
-	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) {
-	ctx := context.Background()
-
-	guild, err := h.Database.Guilds().GetGuildByDiscordID(ctx, i.GuildID)
-	if err != nil {
-		return
-	}
-
-	user, err := h.Database.Users().GetUserByDiscordID(ctx, i.Member.User.ID)
-	if err != nil {
-		return
-	}
-
-	polls, err := h.Database.Polls().GetActivePolls(ctx, guild.ID, user.ID)
-	if err != nil {
-		return
-	}
-
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(polls))
-	for i, poll := range polls {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:  fmt.Sprintf("Poll ID: %d | %s", poll.ID, poll.Title),
-			Value: poll.ID,
-		}
-	}
-
-	err = h.Session.InteractionRespond(i, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
-		Data: &discordgo.InteractionResponseData{
-			Choices: lo.Filter(choices, func(c *discordgo.ApplicationCommandOptionChoice, _ int) bool {
-				s, ok := options["poll"].Value.(string)
-				if !ok {
-					return false
-				}
-
-				return strings.Contains(c.Name, s)
-			}),
-		},
-	})
-	if err != nil {
-		return
-	}
 }
 
 var command = &discordgo.ApplicationCommand{

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/samber/lo"
 )
@@ -16,48 +17,13 @@ func (h *Handler) statusPoll(
 ) {
 	var err error
 	defer func() {
+		err = helpers.InteractionResponseProcess(h.Session, i, "Сообщение с опросом отправлено.", err)
 		if err != nil {
-			h.Log.Error("error creating poll", slog.String("error", err.Error()))
-			err := interactionRespondError(
-				"Произошла ошибка при формировании состояния опроса",
-				err, h.Session, i,
-			)
-			if err != nil {
-				h.Log.Error(
-					"error editing an interaction",
-					slog.String("error", err.Error()),
-				)
-			}
-
-			return
-		}
-
-		err = interactionRespondSuccess(
-			"Состояние опроса сформировано!",
-			h.Session, i,
-		)
-		if err != nil {
-			h.Log.Error(
-				"error editing an interaction",
-				slog.String("error", err.Error()),
-			)
+			h.Log.Error("error editing an interaction response", slog.String("error", err.Error()))
 		}
 	}()
 
 	ctx := context.Background()
-
-	err = interactionRespondLoading(
-		"Состояние опроса формируется...",
-		h.Session, i,
-	)
-	if err != nil {
-		h.Log.Error(
-			"error responding to interaction",
-			slog.String("error", err.Error()),
-		)
-
-		return
-	}
 
 	pollId := options["poll"].IntValue()
 

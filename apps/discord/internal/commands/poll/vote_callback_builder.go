@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/logger"
@@ -34,32 +35,15 @@ func NewVoteCallbackBuilder(opts VoteCallbackBuilderOpts) *VoteCallbackBuilder {
 	}
 }
 
-type Callback = func(i *discordgo.Interaction)
-
-func (h *VoteCallbackBuilder) Build(poll_id, option_id int32) Callback {
+func (h *VoteCallbackBuilder) Build(poll_id, option_id int32) func(*discordgo.Interaction) {
 	return func(i *discordgo.Interaction) {
 		var err error
 		defer func() {
+			err = helpers.InteractionResponseProcess(h.Session, i, "Голос зарегестрирован.", err)
 			if err != nil {
-				h.Log.Error("error registering vote", slog.String("error", err.Error()))
-				err := interactionRespondError("Произошла ошибка при регистрации голоса", err, h.Session, i)
-				if err != nil {
-					h.Log.Error("error editing an interaction", slog.String("error", err.Error()))
-				}
-
-				return
-			}
-
-			err = interactionRespondSuccess("Голос зарегистрирован", h.Session, i)
-			if err != nil {
-				h.Log.Error("error editing an interaction", slog.String("error", err.Error()))
+				h.Log.Error("error editing an interaction response", slog.String("error", err.Error()))
 			}
 		}()
-
-		err = interactionRespondLoading("Голос регистрируется...", h.Session, i)
-		if err != nil {
-			h.Log.Error("error responding to interaction", slog.String("error", err.Error()))
-		}
 
 		ctx := context.Background()
 
