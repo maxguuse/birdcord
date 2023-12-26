@@ -9,6 +9,8 @@ jobs:
   prepare:
     runs-on: self-hosted
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
       - name: Stop and remove containers, networks
         run: docker-compose down
       - name: Remove unused data
@@ -19,5 +21,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Docker-compose
-        run: docker-compose up -d
+        run: docker-compose up -d \
+            -e ENVIRONMENT=${{ secrets.ENVIRONMENT }} \
+            -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} \
+            -e DISCORD_ID=${{ secrets.DISCORD_ID }} \
+            -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
+            -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+            -e POSTGRES_DB=${{ secrets.POSTGRES_DB }} \
+            -e CONNECTION_STRING=${{ secrets.CONNECTION_STRING }}
     
