@@ -15,7 +15,6 @@ jobs:
         run: docker system prune -a -f
   deploy:
     runs-on: self-hosted
-    needs: prepare
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
