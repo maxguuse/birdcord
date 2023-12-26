@@ -1,11 +1,14 @@
 package config
 
 import (
-	"github.com/ilyakaznacheev/cleanenv"
 	"os"
+
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 type Config struct {
+	Environment string `env:"ENVIRONMENT"`
+
 	DiscordToken string `env:"DISCORD_TOKEN"`
 	DiscordId    string `env:"DISCORD_ID"`
 

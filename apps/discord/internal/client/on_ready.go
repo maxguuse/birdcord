@@ -20,15 +20,21 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 		panic(err)
 	}
 
+	customStatus := lo.If(
+		c.Cfg.Environment == "prod",
+		"Released",
+	).Else("Смотрит как Гусь кодит 💻")
+
 	if err := c.UpdateStatusComplex(discordgo.UpdateStatusData{
-		Status: string(discordgo.StatusOnline),
-		AFK:    false,
 		Activities: []*discordgo.Activity{
 			{
-				Name: "как Гусь кодит 💻",
-				Type: discordgo.ActivityTypeWatching,
+				Name:  "Custom status",
+				Type:  discordgo.ActivityTypeCustom,
+				State: customStatus,
 			},
 		},
+		AFK:    false,
+		Status: string(discordgo.StatusOnline),
 	}); err != nil {
 		c.Log.Error(
 			"Error updating status",
@@ -45,16 +51,14 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 
 		return g.ID
 	})
+
 	newGuildsCount, err := c.Database.Queries().CreateGuilds(context.Background(), guildsIds)
 	if err != nil {
-		c.Log.Error(
-			"Error creating guilds",
-			slog.String("error", err.Error()),
-		)
-	} else {
-		c.Log.Info(
-			"Created guilds",
-			slog.Int("new", int(newGuildsCount)),
-		)
+		panic(err)
 	}
+
+	c.Log.Info(
+		"Created guilds",
+		slog.Int("new", int(newGuildsCount)),
+	)
 }

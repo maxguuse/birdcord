@@ -20,6 +20,7 @@ func NewSession(cfg *config.Config) (*discordgo.Session, error) {
 type Client struct {
 	*discordgo.Session
 
+	Cfg             *config.Config
 	Log             logger.Logger
 	Database        *db.DB
 	Pubsub          pubsub.PubSub
@@ -40,6 +41,7 @@ type ClientOpts struct {
 
 func New(opts ClientOpts) *Client {
 	client := &Client{
+		Cfg:             opts.Cfg,
 		Log:             opts.Log,
 		Database:        opts.Database,
 		Pubsub:          opts.Pubsub,
