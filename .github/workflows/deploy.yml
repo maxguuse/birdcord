@@ -1,0 +1,24 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+
+  prepare:
+    runs-on: self-hosted
+    steps:
+      - name: Stop and remove containers, networks
+        run: docker-compose down
+      - name: Remove unused data
+        run: docker system prune -a -f
+  deploy:
+    runs-on: self-hosted
+    needs: prepare
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Docker-compose
+        run: docker-compose up -d
+    
