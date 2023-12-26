@@ -83,10 +83,7 @@ func (h *Handler) stopPoll(
 	})
 
 	for _, msg := range poll.Messages {
-		pollEmbed := buildPollEmbed(
-			poll,
-			discordAuthor,
-		)
+		pollEmbed := buildPollEmbed(poll, discordAuthor)
 
 		pollEmbed[0].Fields = append(pollEmbed[0].Fields, &discordgo.MessageEmbedField{
 			Name:   "Победители",

@@ -46,40 +46,7 @@ func (h *Handler) statusPoll(
 		return
 	}
 
-	msg, err := h.Session.ChannelMessageSend(i.ChannelID, "Bird думает...")
-	if err != nil {
-		err = errors.Join(domain.ErrInternal, err)
-
-		return
-	}
-
-	actionRows := h.buildActionRows(poll, msg, lo.Map(poll.Options, func(option domain.PollOption, _ int) string {
+	err = h.sendPollMessage(ctx, i, poll, lo.Map(poll.Options, func(option domain.PollOption, _ int) string {
 		return option.Title
 	}))
-	pollEmbed := buildPollEmbed(poll, i.Member.User)
-
-	_, err = h.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
-		ID:         msg.ID,
-		Channel:    msg.ChannelID,
-		Content:    new(string),
-		Embeds:     pollEmbed,
-		Components: actionRows,
-	})
-	if err != nil {
-		err = errors.Join(domain.ErrInternal, err)
-
-		return
-	}
-
-	_, err = h.Database.Polls().CreatePollMessage(
-		ctx,
-		msg.ID, msg.ChannelID,
-		poll.ID,
-	)
-	if err != nil {
-		deleteErr := h.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
-		err = errors.Join(domain.ErrInternal, deleteErr, err)
-
-		return
-	}
 }

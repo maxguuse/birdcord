@@ -1,10 +1,12 @@
 package poll
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
@@ -42,4 +44,24 @@ func buildPollEmbed(
 			},
 		},
 	}
+}
+
+func processPollOptions(rawOptions string) ([]string, error) {
+	optionsList := strings.Split(rawOptions, "|")
+	if len(optionsList) < 2 || len(optionsList) > 25 {
+		return nil, errors.Join(
+			domain.ErrUserSide,
+			domain.ErrWrongPollOptionsAmount,
+		)
+	}
+	if lo.SomeBy(optionsList, func(o string) bool {
+		return utf8.RuneCountInString(o) > 50 || utf8.RuneCountInString(o) < 1
+	}) {
+		return nil, errors.Join(
+			domain.ErrUserSide,
+			domain.ErrWrongPollOptionLength,
+		)
+	}
+
+	return optionsList, nil
 }

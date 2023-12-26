@@ -39,7 +39,7 @@ func (h *VoteCallbackBuilder) Build(poll_id, option_id int32) func(*discordgo.In
 	return func(i *discordgo.Interaction) {
 		var err error
 		defer func() {
-			err = helpers.InteractionResponseProcess(h.Session, i, "Голос зарегестрирован.", err)
+			err = helpers.InteractionResponseProcess(h.Session, i, "Голос зарегистрирован.", err)
 			if err != nil {
 				h.Log.Error("error editing an interaction response", slog.String("error", err.Error()))
 			}
@@ -71,9 +71,8 @@ func (h *VoteCallbackBuilder) Build(poll_id, option_id int32) func(*discordgo.In
 			return
 		}
 
+		pollEmbed := buildPollEmbed(poll, discordAuthor)
 		for _, msg := range poll.Messages {
-			pollEmbed := buildPollEmbed(poll, discordAuthor)
-
 			_, err = h.Session.ChannelMessageEditEmbeds(
 				msg.DiscordChannelID,
 				msg.DiscordMessageID,
