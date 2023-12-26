@@ -82,15 +82,14 @@ func (h *Handler) stopPoll(
 		return option.Title
 	})
 
+	pollEmbed := buildPollEmbed(poll, discordAuthor)
+	pollEmbed[0].Fields = append(pollEmbed[0].Fields, &discordgo.MessageEmbedField{
+		Name:   "Победители",
+		Value:  strings.Join(winnersList, ","),
+		Inline: true,
+	})
+
 	for _, msg := range poll.Messages {
-		pollEmbed := buildPollEmbed(poll, discordAuthor)
-
-		pollEmbed[0].Fields = append(pollEmbed[0].Fields, &discordgo.MessageEmbedField{
-			Name:   "Победители",
-			Value:  strings.Join(winnersList, ","),
-			Inline: true,
-		})
-
 		_, err = h.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
 			ID:         msg.DiscordMessageID,
 			Channel:    msg.DiscordChannelID,
