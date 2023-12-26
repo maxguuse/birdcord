@@ -17,6 +17,7 @@ jobs:
         run: docker system prune -a -f
   deploy:
     runs-on: self-hosted
+    needs: prepare
     env:
       ENVIRONMENT: ${{ secrets.ENVIRONMENT }}
       DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
