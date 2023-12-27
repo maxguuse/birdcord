@@ -59,6 +59,8 @@ func (h *Handler) Callback() func(i *discordgo.Interaction) {
 			h.stopPoll(i, commandOptions)
 		case "status":
 			h.statusPoll(i, commandOptions)
+		case "add-option":
+			h.addPollOption(i, commandOptions)
 		}
 	}
 }
@@ -71,6 +73,8 @@ func (h *Handler) Autocomplete() (func(i *discordgo.Interaction), bool) {
 		case "stop":
 			h.autocompletePollList(i, commandOptions)
 		case "status":
+			h.autocompletePollList(i, commandOptions)
+		case "add-option":
 			h.autocompletePollList(i, commandOptions)
 		}
 	}, true
@@ -125,6 +129,27 @@ var command = &discordgo.ApplicationCommand{
 					Type:         discordgo.ApplicationCommandOptionInteger,
 					Required:     true,
 					Autocomplete: true,
+				},
+			},
+		},
+		{
+			Name:        "add-option",
+			Description: "Добавить вариант ответа к опросу",
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:         "poll",
+					Description:  "Опрос",
+					Type:         discordgo.ApplicationCommandOptionInteger,
+					Required:     true,
+					Autocomplete: true,
+				},
+				{
+					Name:        "option",
+					Description: "Новый вариант ответа",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Required:    true,
+					MaxLength:   50,
 				},
 			},
 		},
