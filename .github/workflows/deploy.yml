@@ -1,0 +1,35 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+
+  prepare:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Stop and remove containers, networks
+        run: docker-compose down
+      - name: Remove unused data
+        run: docker system prune -a -f
+  deploy:
+    runs-on: self-hosted
+    needs: prepare
+    env:
+      ENVIRONMENT: ${{ secrets.ENVIRONMENT }}
+      DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+      DISCORD_ID: ${{ secrets.DISCORD_ID }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      CONNECTION_STRING: ${{ secrets.CONNECTION_STRING }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Docker-compose
+        run: docker-compose up -d
+            
+    

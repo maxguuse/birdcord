@@ -15,6 +15,7 @@ services:
       dockerfile: ./Dockerfile
       target: migrations
     environment:
+      - ENVIRONMENT=${ENVIRONMENT}
       - CONNECTION_STRING=${CONNECTION_STRING}
     deploy:
       restart_policy:
