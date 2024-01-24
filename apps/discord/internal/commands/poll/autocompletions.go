@@ -55,3 +55,40 @@ func (h *Handler) autocompletePollList(
 		return
 	}
 }
+
+func (h *Handler) autocompleteOptionList(
+	i *discordgo.Interaction,
+	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
+) {
+	ctx := context.Background()
+
+	poll, err := h.Database.Polls().GetPollWithDetails(ctx, options["poll"].Value.(int))
+	if err != nil {
+		return
+	}
+
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(poll.Options))
+	for i, option := range poll.Options {
+		choices[i] = &discordgo.ApplicationCommandOptionChoice{
+			Name:  option.Title,
+			Value: option.ID,
+		}
+	}
+
+	err = h.Session.InteractionRespond(i, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
+		Data: &discordgo.InteractionResponseData{
+			Choices: lo.Filter(choices, func(c *discordgo.ApplicationCommandOptionChoice, _ int) bool {
+				s, ok := options["option"].Value.(string)
+				if !ok {
+					return false
+				}
+
+				return strings.Contains(c.Name, s)
+			}),
+		},
+	})
+	if err != nil {
+		return
+	}
+}
