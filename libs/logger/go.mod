@@ -13,5 +13,5 @@ require (
 	github.com/samber/lo v1.39.0 // indirect
 	github.com/samber/slog-common v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 )
