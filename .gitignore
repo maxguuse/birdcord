@@ -1,4 +1,5 @@
 .vscode
+.task
 
 !.env.example
 *.env

@@ -1,11 +1,11 @@
 version: "2"
 sql:
   - engine: postgresql
-    queries: "./libs/sqlc/sql/"
-    schema: "./libs/migrations/migrations/"
+    queries: "../libs/sqlc/sql/"
+    schema: "../libs/migrations/migrations/"
     gen:
       go:
         package: "queries"
         sql_package: "pgx/v5"
-        out: "./libs/sqlc/queries/"
+        out: "../libs/sqlc/queries/"
         emit_json_tags: true
