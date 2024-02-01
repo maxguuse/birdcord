@@ -8,11 +8,17 @@ dotenv:
 
 tasks:
   dev-migrate-up:
+    desc: "Run migrations for development DB up"
+    aliases:
+      - migrate-up
     cmds:
       - task: migrate
         vars:
           DIRECTION: up
   dev-migrate-down:
+    desc: "Run migrations for development DB down"
+    aliases:
+      - migrate-down
     cmds:
       - task: migrate
         vars:
@@ -21,12 +27,14 @@ tasks:
     internal: true
     cmd: goose -dir libs/migrations/migrations postgres {{.CONNECTION_STRING}} {{.DIRECTION}}
   generate:
+    desc: "Generate code for SQLC and gRPC"
     aliases:
       - gen
     cmds:
       - task: generate-sqlc
       - task: generate-grpc
   generate-sqlc:
+    desc: "Generate code for SQLC"
     aliases:
       - gen-sqlc
       - sqlc
@@ -37,6 +45,7 @@ tasks:
     sources:
       - "libs/sqlc/sql/*.sql"
   generate-grpc:
+    desc: "Generate code for gRPC"
     aliases:
       - gen-grpc
       - grpc
