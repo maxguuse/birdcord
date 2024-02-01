@@ -1,0 +1,8 @@
+version: '3'
+
+tasks:
+  generate-sqlc:
+    vars:
+      CONFIG: ./configs/sqlc.yaml
+    cmds:
+      - sqlc generate -f {{.CONFIG}}
