@@ -4,12 +4,12 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
 	"github.com/samber/lo"
 )
 
 func (h *Handler) removeOptionAutocomplete(
 	i *discordgo.Interaction,
+	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
 ) {
 	data := i.ApplicationCommandData()
 
@@ -21,8 +21,6 @@ func (h *Handler) removeOptionAutocomplete(
 	}
 
 	h.Log.Debug("focused option", slog.Any("option", focusedOption))
-
-	options := helpers.BuildOptionsMap(i)
 
 	switch focusedOption.Name {
 	case "poll":

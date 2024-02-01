@@ -82,17 +82,17 @@ func (h *Handler) Autocomplete() (func(i *discordgo.Interaction), bool) {
 		data := i.ApplicationCommandData()
 		h.Log.Debug("data", slog.Any("data", data))
 
-		// commandOptions := helpers.BuildOptionsMap(i)
+		commandOptions := helpers.BuildOptionsMap(i)
 
 		switch i.ApplicationCommandData().Options[0].Name {
-		// case SubcommandStop:
-		// 	h.autocompletePollList(i, commandOptions)
-		// case SubcommandStatus:
-		// 	h.autocompletePollList(i, commandOptions)
-		// case SubcommandAddOption:
-		// 	h.autocompletePollList(i, commandOptions)
+		case SubcommandStop:
+			h.autocompletePollList(i, commandOptions)
+		case SubcommandStatus:
+			h.autocompletePollList(i, commandOptions)
+		case SubcommandAddOption:
+			h.autocompletePollList(i, commandOptions)
 		case SubcommandRemoveOption:
-			h.removeOptionAutocomplete(i)
+			h.removeOptionAutocomplete(i, commandOptions)
 		}
 	}, true
 }
