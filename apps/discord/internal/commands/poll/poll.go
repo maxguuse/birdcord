@@ -1,6 +1,8 @@
 package poll
 
 import (
+	"log/slog"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
@@ -14,6 +16,14 @@ var NewFx = fx.Options(
 		NewVoteCallbackBuilder,
 		NewHandler,
 	),
+)
+
+const (
+	SubcommandStart        = "start"
+	SubcommandStop         = "stop"
+	SubcommandStatus       = "status"
+	SubcommandAddOption    = "add-option"
+	SubcommandRemoveOption = "remove-option"
 )
 
 type Handler struct {
@@ -53,25 +63,36 @@ func (h *Handler) Callback() func(i *discordgo.Interaction) {
 		commandOptions := helpers.BuildOptionsMap(i)
 
 		switch i.ApplicationCommandData().Options[0].Name {
-		case "start":
+		case SubcommandStart:
 			h.startPoll(i, commandOptions)
-		case "stop":
+		case SubcommandStop:
 			h.stopPoll(i, commandOptions)
-		case "status":
+		case SubcommandStatus:
 			h.statusPoll(i, commandOptions)
+		case SubcommandAddOption:
+			h.addPollOption(i, commandOptions)
+		case SubcommandRemoveOption:
+			h.removePollOption(i, commandOptions)
 		}
 	}
 }
 
 func (h *Handler) Autocomplete() (func(i *discordgo.Interaction), bool) {
 	return func(i *discordgo.Interaction) {
-		commandOptions := helpers.BuildOptionsMap(i)
+		data := i.ApplicationCommandData()
+		h.Log.Debug("data", slog.Any("data", data))
+
+		// commandOptions := helpers.BuildOptionsMap(i)
 
 		switch i.ApplicationCommandData().Options[0].Name {
-		case "stop":
-			h.autocompletePollList(i, commandOptions)
-		case "status":
-			h.autocompletePollList(i, commandOptions)
+		// case SubcommandStop:
+		// 	h.autocompletePollList(i, commandOptions)
+		// case SubcommandStatus:
+		// 	h.autocompletePollList(i, commandOptions)
+		// case SubcommandAddOption:
+		// 	h.autocompletePollList(i, commandOptions)
+		case SubcommandRemoveOption:
+			h.removeOptionAutocomplete(i)
 		}
 	}, true
 }
@@ -81,7 +102,7 @@ var command = &discordgo.ApplicationCommand{
 	Description: "Управление опросами",
 	Options: []*discordgo.ApplicationCommandOption{
 		{
-			Name:        "start",
+			Name:        SubcommandStart,
 			Description: "Начать опрос",
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Options: []*discordgo.ApplicationCommandOption{
@@ -101,7 +122,7 @@ var command = &discordgo.ApplicationCommand{
 			},
 		},
 		{
-			Name:        "stop",
+			Name:        SubcommandStop,
 			Description: "Остановить опрос",
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Options: []*discordgo.ApplicationCommandOption{
@@ -115,13 +136,55 @@ var command = &discordgo.ApplicationCommand{
 			},
 		},
 		{
-			Name:        "status",
+			Name:        SubcommandStatus,
 			Description: "Статус опроса",
 			Type:        discordgo.ApplicationCommandOptionSubCommand,
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Name:         "poll",
 					Description:  "Опрос",
+					Type:         discordgo.ApplicationCommandOptionInteger,
+					Required:     true,
+					Autocomplete: true,
+				},
+			},
+		},
+		{
+			Name:        SubcommandAddOption,
+			Description: "Добавить вариант ответа к опросу",
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:         "poll",
+					Description:  "Опрос",
+					Type:         discordgo.ApplicationCommandOptionInteger,
+					Required:     true,
+					Autocomplete: true,
+				},
+				{
+					Name:        "option",
+					Description: "Новый вариант ответа",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Required:    true,
+					MaxLength:   50,
+				},
+			},
+		},
+		{
+			Name:        SubcommandRemoveOption,
+			Description: "Удалить вариант ответа из опроса",
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:         "poll",
+					Description:  "Опрос",
+					Type:         discordgo.ApplicationCommandOptionInteger,
+					Required:     true,
+					Autocomplete: true,
+				},
+				{
+					Name:         "option",
+					Description:  "Вариант ответа",
 					Type:         discordgo.ApplicationCommandOptionInteger,
 					Required:     true,
 					Autocomplete: true,

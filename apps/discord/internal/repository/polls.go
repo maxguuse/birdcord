@@ -42,6 +42,15 @@ type PollsRepository interface {
 		guildID int,
 		authorID int,
 	) ([]*domain.Poll, error)
+	AddPollOption(
+		ctx context.Context,
+		pollID int,
+		pollOption string,
+	) (*domain.PollOption, error)
+	RemovePollOption(
+		ctx context.Context,
+		optionID int,
+	) error
 }
 
 type pollsRepository struct {
@@ -303,7 +312,7 @@ func (p *pollsRepository) CreatePollMessage(
 
 		pollMsg, err := q.CreatePollMessage(ctx, queries.CreatePollMessageParams{
 			PollID:    int32(pollId),
-			MessageID: int32(msg.ID),
+			MessageID: msg.ID,
 		})
 		if err != nil {
 			return err
@@ -333,6 +342,50 @@ func (p *pollsRepository) UpdatePollStatus(
 			ID:       int32(pollId),
 			IsActive: status,
 		})
+
+		return err
+	})
+
+	return err
+}
+
+func (p *pollsRepository) AddPollOption(
+	ctx context.Context,
+	pollId int,
+	pollOption string,
+) (*domain.PollOption, error) {
+	result := &domain.PollOption{}
+
+	err := p.q.Transaction(func(q *queries.Queries) error {
+		newOption, err := q.CreatePollOption(ctx, queries.CreatePollOptionParams{
+			Title:  pollOption,
+			PollID: int32(pollId),
+		})
+		if err != nil {
+			return errors.Join(
+				domain.ErrInternal,
+				err,
+			)
+		}
+
+		result.ID = int(newOption.ID)
+		result.Title = newOption.Title
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (p *pollsRepository) RemovePollOption(
+	ctx context.Context,
+	optionId int,
+) error {
+	err := p.q.Transaction(func(q *queries.Queries) error {
+		err := q.DeletePollOption(ctx, int32(optionId))
 
 		return err
 	})

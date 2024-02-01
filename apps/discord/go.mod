@@ -4,7 +4,7 @@ go 1.21.5
 
 require (
 	github.com/bwmarrin/discordgo v0.27.2-0.20240104191117-afc57886f91a
-	github.com/jackc/pgx/v5 v5.5.0
+	github.com/jackc/pgx/v5 v5.5.2
 	github.com/samber/lo v1.39.0
 	go.uber.org/fx v1.20.1
 )
