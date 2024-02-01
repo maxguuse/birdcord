@@ -62,7 +62,9 @@ func (h *Handler) autocompleteOptionList(
 ) {
 	ctx := context.Background()
 
-	poll, err := h.Database.Polls().GetPollWithDetails(ctx, options["poll"].Value.(int))
+	pollId := options["poll"].IntValue()
+
+	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
 	if err != nil {
 		return
 	}

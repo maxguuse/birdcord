@@ -47,6 +47,10 @@ type PollsRepository interface {
 		pollID int,
 		pollOption string,
 	) (*domain.PollOption, error)
+	RemovePollOption(
+		ctx context.Context,
+		optionID int,
+	) error
 }
 
 type pollsRepository struct {
@@ -374,4 +378,17 @@ func (p *pollsRepository) AddPollOption(
 	}
 
 	return result, nil
+}
+
+func (p *pollsRepository) RemovePollOption(
+	ctx context.Context,
+	optionId int,
+) error {
+	err := p.q.Transaction(func(q *queries.Queries) error {
+		err := q.DeletePollOption(ctx, int32(optionId))
+
+		return err
+	})
+
+	return err
 }

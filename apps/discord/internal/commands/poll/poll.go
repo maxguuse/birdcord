@@ -71,6 +71,8 @@ func (h *Handler) Callback() func(i *discordgo.Interaction) {
 			h.statusPoll(i, commandOptions)
 		case SubcommandAddOption:
 			h.addPollOption(i, commandOptions)
+		case SubcommandRemoveOption:
+			h.removePollOption(i, commandOptions)
 		}
 	}
 }
