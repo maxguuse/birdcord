@@ -4,12 +4,26 @@ vars:
   PROJECT: github.com/maxguuse/birdcord
 
 tasks:
+  generate:
+    aliases:
+      - gen
+    cmds:
+      - task: generate-sqlc
+      - task: generate-grpc
   generate-sqlc:
+    aliases:
+      - gen-sqlc
+      - sqlc
     vars:
       CONFIG: ./configs/sqlc.yaml
     cmds:
       - sqlc generate -f {{.CONFIG}}
+    sources:
+      - "libs/sqlc/sql/*.sql"
   generate-grpc:
+    aliases:
+      - gen-grpc
+      - grpc
     vars:
       PROTOS: libs/grpc/proto
       GENERATED: libs/grpc/generated
@@ -20,4 +34,6 @@ tasks:
         --go_out=module={{.PROJECT}}/{{.GENERATED}}:{{.GENERATED}}
         --go-grpc_out=module={{.PROJECT}}/{{.GENERATED}}:{{.GENERATED}}
         {{.PROTOS}}/*.proto
+    sources:
+      - "{{.PROTOS}}/*.proto"
 
