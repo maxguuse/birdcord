@@ -3,7 +3,23 @@ version: '3'
 vars:
   PROJECT: github.com/maxguuse/birdcord
 
+dotenv:
+  - "dev.env"
+
 tasks:
+  dev-migrate-up:
+    cmds:
+      - task: migrate
+        vars:
+          DIRECTION: up
+  dev-migrate-down:
+    cmds:
+      - task: migrate
+        vars:
+          DIRECTION: down
+  migrate:
+    internal: true
+    cmd: goose -dir libs/migrations/migrations postgres {{.CONNECTION_STRING}} {{.DIRECTION}}
   generate:
     aliases:
       - gen
