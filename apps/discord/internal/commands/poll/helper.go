@@ -42,12 +42,11 @@ func buildPollEmbed(
 		t := math.Ceil(percentage)
 		t2 := int(math.Floor(t / 3.33))
 
-		var bar string
 		if t2 < 0 {
 			t2 = 0
 		}
 
-		bar = strings.Repeat(VOTES_BAR_BLOCK, t2) + strings.Repeat(VOTES_BAR_SPACE, 30-t2)
+		bar := strings.Repeat(VOTES_BAR_BLOCK, t2) + strings.Repeat(VOTES_BAR_SPACE, 30-t2)
 
 		return fmt.Sprintf("(%d) | %s | (%d%%)", i+1, bar, int(t))
 	})
