@@ -2,6 +2,7 @@ package commands
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/commands/liverole"
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands/poll"
 	"github.com/maxguuse/birdcord/libs/pubsub"
 	"go.uber.org/fx"
@@ -25,13 +26,15 @@ type HandlerOpts struct {
 	Pubsub  pubsub.PubSub
 	Session *discordgo.Session
 
-	PollHandler *poll.Handler
+	PollHandler     *poll.Handler
+	LiveroleHandler *liverole.Handler
 }
 
 func New(opts HandlerOpts) *Handler {
 	return &Handler{
 		Commands: []Command{
 			opts.PollHandler,
+			opts.LiveroleHandler,
 		},
 		Session: opts.Session,
 		Pubsub:  opts.Pubsub,
@@ -61,6 +64,7 @@ func (h *Handler) Register() error {
 
 var NewFx = fx.Options(
 	poll.NewFx,
+	liverole.NewFx,
 
 	fx.Provide(New),
 )

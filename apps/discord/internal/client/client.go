@@ -14,7 +14,11 @@ import (
 )
 
 func NewSession(cfg *config.Config) (*discordgo.Session, error) {
-	return discordgo.New("Bot " + cfg.DiscordToken)
+	s, err := discordgo.New("Bot " + cfg.DiscordToken)
+
+	s.Identify.Intents = discordgo.IntentsAll
+
+	return s, err
 }
 
 type Client struct {
