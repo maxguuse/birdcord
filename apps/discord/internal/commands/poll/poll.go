@@ -78,7 +78,8 @@ func (h *Handler) Callback() func(i *discordgo.Interaction) {
 		}
 
 		res, err := sh(i, commandOptions)
-		_ = helpers.InteractionResponseProcess(h.Session, i, res, err)
+		err = helpers.InteractionResponseProcess(h.Session, i, res, err)
+		h.Log.Error("error processing interaction", slog.String("error", err.Error()))
 	}
 }
 
