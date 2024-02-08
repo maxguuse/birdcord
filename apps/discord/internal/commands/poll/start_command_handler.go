@@ -9,22 +9,22 @@ import (
 func (h *Handler) startPoll(
 	i *discordgo.Interaction,
 	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) error {
+) (string, error) {
 	ctx := context.Background()
 
 	optionsList, err := processPollOptions(options["options"].StringValue())
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	guild, err := h.Database.Guilds().GetGuildByDiscordID(ctx, i.GuildID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	user, err := h.Database.Users().GetUserByDiscordID(ctx, i.Member.User.ID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	poll, err := h.Database.Polls().CreatePoll(
@@ -35,8 +35,13 @@ func (h *Handler) startPoll(
 		optionsList,
 	)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return h.sendPollMessage(ctx, i, poll, optionsList)
+	err = h.sendPollMessage(ctx, i, poll, optionsList)
+	if err != nil {
+		return "", err
+	}
+
+	return "Опрос успешно создан.", nil
 }

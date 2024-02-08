@@ -33,7 +33,7 @@ type Handler struct {
 	Pubsub   pubsub.PubSub
 	Session  *discordgo.Session
 
-	subcommandsHandlers map[string]func(*discordgo.Interaction, optionsMap) error
+	subcommandsHandlers map[string]func(*discordgo.Interaction, optionsMap) (string, error)
 }
 
 type HandlerOpts struct {
@@ -53,7 +53,7 @@ func NewHandler(opts HandlerOpts) *Handler {
 		Session:  opts.Session,
 	}
 
-	h.subcommandsHandlers = map[string]func(*discordgo.Interaction, optionsMap) error{
+	h.subcommandsHandlers = map[string]func(*discordgo.Interaction, optionsMap) (string, error){
 		SubcommandStart:        h.startPoll,
 		SubcommandStop:         h.stopPoll,
 		SubcommandStatus:       h.statusPoll,
@@ -77,10 +77,8 @@ func (h *Handler) Callback() func(i *discordgo.Interaction) {
 			return
 		}
 
-		err := sh(i, commandOptions)
-		if err != nil {
-			_ = helpers.InteractionResponseProcess(h.Session, i, "", err)
-		}
+		res, err := sh(i, commandOptions)
+		_ = helpers.InteractionResponseProcess(h.Session, i, res, err)
 	}
 }
 

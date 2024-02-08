@@ -37,6 +37,9 @@ func (h *Handler) BuildVoteButtonHandler(poll_id, option_id int32) func(*discord
 
 		poll.Votes = append(poll.Votes, *newVote)
 
-		err = h.updatePollMessages(poll, i)
+		err = h.updatePollMessages(&UpdatePollMessageData{
+			poll:        poll,
+			interaction: i,
+		})
 	}
 }

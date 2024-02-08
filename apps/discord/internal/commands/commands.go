@@ -45,7 +45,7 @@ func (h *Handler) Register() error {
 		return cmd.Command()
 	})
 
-	var wg *errgroup.Group
+	wg := new(errgroup.Group)
 	for _, cmd := range h.Commands {
 		cmd := cmd
 

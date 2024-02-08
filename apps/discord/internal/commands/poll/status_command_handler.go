@@ -12,25 +12,30 @@ import (
 func (h *Handler) statusPoll(
 	i *discordgo.Interaction,
 	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) error {
+) (string, error) {
 	ctx := context.Background()
 
 	pollId := options["poll"].IntValue()
 
 	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
 	if err != nil {
-		return errors.Join(domain.ErrInternal, err)
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	if poll.Author.DiscordUserID != i.Member.User.ID {
-		return errors.Join(domain.ErrUserSide, domain.ErrNotAuthor)
+		return "", errors.Join(domain.ErrUserSide, domain.ErrNotAuthor)
 	}
 
 	if poll.Guild.DiscordGuildID != i.GuildID {
-		return errors.Join(domain.ErrUserSide, domain.ErrWrongGuild)
+		return "", errors.Join(domain.ErrUserSide, domain.ErrWrongGuild)
 	}
 
-	return h.sendPollMessage(ctx, i, poll, lo.Map(poll.Options, func(option domain.PollOption, _ int) string {
+	err = h.sendPollMessage(ctx, i, poll, lo.Map(poll.Options, func(option domain.PollOption, _ int) string {
 		return option.Title
 	}))
+	if err != nil {
+		return "", err
+	}
+
+	return "Опрос успешно отправлен.", nil
 }

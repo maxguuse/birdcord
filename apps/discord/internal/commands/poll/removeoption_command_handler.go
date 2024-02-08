@@ -12,7 +12,7 @@ import (
 func (h *Handler) removePollOption(
 	i *discordgo.Interaction,
 	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) error {
+) (string, error) {
 	ctx := context.Background()
 
 	pollId := options["poll"].IntValue()
@@ -20,30 +20,33 @@ func (h *Handler) removePollOption(
 
 	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
 	if err != nil {
-		return errors.Join(domain.ErrInternal, err)
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	if poll.Author.DiscordUserID != i.Member.User.ID {
-		return errors.Join(domain.ErrUserSide, domain.ErrNotAuthor)
+		return "", errors.Join(domain.ErrUserSide, domain.ErrNotAuthor)
 	}
 
 	if poll.Guild.DiscordGuildID != i.GuildID {
-		return errors.Join(domain.ErrUserSide, domain.ErrWrongGuild)
+		return "", errors.Join(domain.ErrUserSide, domain.ErrWrongGuild)
 	}
 
 	err = h.Database.Polls().RemovePollOption(ctx, int(optionId))
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	poll.Options = lo.Filter(poll.Options, func(o domain.PollOption, _ int) bool {
 		return o.ID != int(optionId)
 	})
 
-	err = h.updatePollMessages(poll, i)
+	err = h.updatePollMessages(&UpdatePollMessageData{
+		poll:        poll,
+		interaction: i,
+	})
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return "Вариант опроса успешно удален.", nil
 }

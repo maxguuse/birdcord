@@ -40,19 +40,25 @@ func (h *Handler) sendPollMessage(
 	return nil
 }
 
-func (h *Handler) updatePollMessages(
-	poll *domain.PollWithDetails,
-	i *discordgo.Interaction,
-	f ...*discordgo.MessageEmbedField) error {
-	actionRows := h.buildActionRows(poll, i.ID)
-	pollEmbed := buildPollEmbed(poll, i.Member.User)
+type UpdatePollMessageData struct {
+	poll        *domain.PollWithDetails
+	interaction *discordgo.Interaction
+	stop        bool
+	fields      []*discordgo.MessageEmbedField
+}
 
-	if len(f) > 0 {
-		pollEmbed[0].Fields = append(pollEmbed[0].Fields, f...)
+func (h *Handler) updatePollMessages(data *UpdatePollMessageData) error {
+	actionRows := lo.
+		If(data.stop, make([]discordgo.MessageComponent, 0)).
+		Else(h.buildActionRows(data.poll, data.interaction.ID))
+	pollEmbed := buildPollEmbed(data.poll, data.interaction.Member.User)
+
+	if len(data.fields) > 0 {
+		pollEmbed[0].Fields = append(pollEmbed[0].Fields, data.fields...)
 	}
 
-	var wg *errgroup.Group
-	for _, msg := range poll.Messages {
+	wg := new(errgroup.Group)
+	for _, msg := range data.poll.Messages {
 		msg := msg
 		wg.Go(func() error {
 			_, err := h.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{

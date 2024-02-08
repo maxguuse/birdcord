@@ -13,7 +13,7 @@ import (
 func (h *Handler) stopPoll(
 	i *discordgo.Interaction,
 	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) error {
+) (string, error) {
 	ctx := context.Background()
 
 	optionsWithVotes := make(map[domain.PollOption]int)
@@ -22,15 +22,15 @@ func (h *Handler) stopPoll(
 
 	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
 	if err != nil {
-		return errors.Join(domain.ErrInternal, err)
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	if poll.Author.DiscordUserID != i.Member.User.ID {
-		return errors.Join(domain.ErrUserSide, domain.ErrNotAuthor)
+		return "", errors.Join(domain.ErrUserSide, domain.ErrNotAuthor)
 	}
 
 	if poll.Guild.DiscordGuildID != i.GuildID {
-		return errors.Join(domain.ErrUserSide, domain.ErrWrongGuild)
+		return "", errors.Join(domain.ErrUserSide, domain.ErrWrongGuild)
 	}
 
 	var maxVotes int = 0
@@ -59,19 +59,23 @@ func (h *Handler) stopPoll(
 		return option.Title
 	})
 
-	err = h.updatePollMessages(poll, i, &discordgo.MessageEmbedField{
-		Name:   "Победители",
-		Value:  strings.Join(winnersList, ","),
-		Inline: true,
+	err = h.updatePollMessages(&UpdatePollMessageData{
+		poll:        poll,
+		interaction: i,
+		stop:        true,
+		fields: []*discordgo.MessageEmbedField{
+			{
+				Name:   "Победители",
+				Value:  strings.Join(winnersList, ","),
+				Inline: true,
+			},
+		},
 	})
-	if err != nil {
-		return err
-	}
 
 	err = h.Database.Polls().UpdatePollStatus(ctx, int(pollId), false)
 	if err != nil {
-		return errors.Join(domain.ErrInternal, err)
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
-	return nil
+	return "Опрос успешно остановлен.", nil
 }
