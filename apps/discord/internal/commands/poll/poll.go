@@ -13,7 +13,6 @@ import (
 
 var NewFx = fx.Options(
 	fx.Provide(
-		NewVoteCallbackBuilder,
 		NewHandler,
 	),
 )
@@ -27,30 +26,27 @@ const (
 )
 
 type Handler struct {
-	Log         logger.Logger
-	Database    repository.DB
-	Pubsub      pubsub.PubSub
-	Session     *discordgo.Session
-	VoteBuilder *VoteCallbackBuilder
+	Log      logger.Logger
+	Database repository.DB
+	Pubsub   pubsub.PubSub
+	Session  *discordgo.Session
 }
 
 type HandlerOpts struct {
 	fx.In
 
-	Log         logger.Logger
-	Database    repository.DB
-	Pubsub      pubsub.PubSub
-	Session     *discordgo.Session
-	VoteBuilder *VoteCallbackBuilder
+	Log      logger.Logger
+	Database repository.DB
+	Pubsub   pubsub.PubSub
+	Session  *discordgo.Session
 }
 
 func NewHandler(opts HandlerOpts) *Handler {
 	return &Handler{
-		Log:         opts.Log,
-		Database:    opts.Database,
-		Pubsub:      opts.Pubsub,
-		Session:     opts.Session,
-		VoteBuilder: opts.VoteBuilder,
+		Log:      opts.Log,
+		Database: opts.Database,
+		Pubsub:   opts.Pubsub,
+		Session:  opts.Session,
 	}
 }
 

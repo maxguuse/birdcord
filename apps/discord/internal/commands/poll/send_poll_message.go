@@ -52,7 +52,7 @@ func (h *Handler) buildActionRows(
 			CustomID: customId,
 		})
 
-		_ = h.Pubsub.Subscribe(customId, h.VoteBuilder.Build(
+		_ = h.Pubsub.Subscribe(customId, h.BuildVoteButtonHandler(
 			int32(poll.ID), int32(option.ID),
 		))
 	}
