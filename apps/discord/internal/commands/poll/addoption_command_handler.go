@@ -22,15 +22,11 @@ func (h *Handler) addPollOption(
 	}
 
 	if poll.Author.DiscordUserID != i.Member.User.ID {
-		return "", &domain.UsersideError{
-			Msg: "Для изменения опроса нужно быть его автором.",
-		}
+		return "", ErrNotAuthor
 	}
 
 	if poll.Guild.DiscordGuildID != i.GuildID {
-		return "", &domain.UsersideError{
-			Msg: "Опроса не существует.",
-		}
+		return "", ErrNotFound
 	}
 
 	newOption, err := h.Database.Polls().AddPollOption(ctx, int(pollId), options["option"].StringValue())

@@ -26,15 +26,11 @@ func (h *Handler) stopPoll(
 	}
 
 	if poll.Author.DiscordUserID != i.Member.User.ID {
-		return "", &domain.UsersideError{
-			Msg: "Для изменения опроса нужно быть его автором.",
-		}
+		return "", ErrNotAuthor
 	}
 
 	if poll.Guild.DiscordGuildID != i.GuildID {
-		return "", &domain.UsersideError{
-			Msg: "Опроса не существует.",
-		}
+		return "", ErrNotFound
 	}
 
 	var maxVotes int = 0
