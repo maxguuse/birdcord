@@ -271,10 +271,7 @@ func (p *pollsRepository) TryAddVote(
 
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return errors.Join(
-				domain.ErrUserSide,
-				domain.ErrAlreadyVoted,
-			)
+			return errors.New("already voted") //TODO extract error
 		}
 		if err != nil {
 			return errors.Join(domain.ErrInternal, err)

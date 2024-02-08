@@ -23,11 +23,15 @@ func (h *Handler) statusPoll(
 	}
 
 	if poll.Author.DiscordUserID != i.Member.User.ID {
-		return "", errors.Join(domain.ErrUserSide, domain.ErrNotAuthor)
+		return "", &domain.UsersideError{
+			Msg: "Для изменения опроса нужно быть его автором.",
+		}
 	}
 
 	if poll.Guild.DiscordGuildID != i.GuildID {
-		return "", errors.Join(domain.ErrUserSide, domain.ErrWrongGuild)
+		return "", &domain.UsersideError{
+			Msg: "Опроса не существует.",
+		}
 	}
 
 	err = h.sendPollMessage(ctx, i, poll, lo.Map(poll.Options, func(option domain.PollOption, _ int) string {
