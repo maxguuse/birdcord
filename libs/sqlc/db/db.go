@@ -37,9 +37,7 @@ func (p *DB) Queries() *queries.Queries {
 	return p.queries
 }
 
-func (p *DB) Transaction(f func(*queries.Queries) error) error {
-	ctx := context.Background()
-
+func (p *DB) Transaction(ctx context.Context, f func(*queries.Queries) error) error {
 	tx, err := p.pool.Begin(ctx)
 	if err != nil {
 		return err

@@ -32,7 +32,7 @@ func (g *guildsRepository) GetGuildByDiscordID(
 ) (*domain.Guild, error) {
 	result := &domain.Guild{}
 
-	err := g.q.Transaction(func(q *queries.Queries) error {
+	err := g.q.Transaction(ctx, func(q *queries.Queries) error {
 		guild, err := q.GetGuildByDiscordID(ctx, id)
 		if err != nil {
 			return errors.Join(

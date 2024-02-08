@@ -33,7 +33,7 @@ func (u *usersRepository) GetUserByDiscordID(
 ) (*domain.User, error) {
 	result := &domain.User{}
 
-	err := u.q.Transaction(func(q *queries.Queries) error {
+	err := u.q.Transaction(ctx, func(q *queries.Queries) error {
 		user, err := q.GetUserByDiscordID(ctx, id)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return errors.Join(

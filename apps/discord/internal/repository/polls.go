@@ -71,7 +71,7 @@ func (p *pollsRepository) CreatePoll(
 ) (*domain.PollWithDetails, error) {
 	result := &domain.PollWithDetails{}
 
-	err := p.q.Transaction(func(q *queries.Queries) error {
+	err := p.q.Transaction(ctx, func(q *queries.Queries) error {
 		poll, err := q.CreatePoll(ctx, queries.CreatePollParams{
 			Title: title,
 			AuthorID: pgtype.Int4{
@@ -138,7 +138,7 @@ func (p *pollsRepository) GetPollWithDetails(
 ) (*domain.PollWithDetails, error) {
 	result := &domain.PollWithDetails{}
 
-	err := p.q.Transaction(func(q *queries.Queries) error {
+	err := p.q.Transaction(ctx, func(q *queries.Queries) error {
 		poll, err := q.GetPoll(ctx, int32(id))
 		if err != nil {
 			return errors.Join(domain.ErrInternal, err)
@@ -226,7 +226,7 @@ func (p *pollsRepository) GetActivePolls(
 ) ([]*domain.Poll, error) {
 	result := []*domain.Poll{}
 
-	err := p.q.Transaction(func(q *queries.Queries) error {
+	err := p.q.Transaction(ctx, func(q *queries.Queries) error {
 		polls, err := q.GetActivePolls(ctx, queries.GetActivePollsParams{
 			GuildID: int32(guildID),
 			AuthorID: pgtype.Int4{
@@ -262,7 +262,7 @@ func (p *pollsRepository) TryAddVote(
 ) (*domain.PollVote, error) {
 	result := &domain.PollVote{}
 
-	err := p.q.Transaction(func(q *queries.Queries) error {
+	err := p.q.Transaction(ctx, func(q *queries.Queries) error {
 		vote, err := q.AddVote(ctx, queries.AddVoteParams{
 			UserID:   int32(userID),
 			PollID:   int32(pollID),
@@ -301,7 +301,7 @@ func (p *pollsRepository) CreatePollMessage(
 ) (*domain.PollMessage, error) {
 	result := &domain.PollMessage{}
 
-	err := p.q.Transaction(func(q *queries.Queries) error {
+	err := p.q.Transaction(ctx, func(q *queries.Queries) error {
 		msg, err := q.CreateMessage(ctx, queries.CreateMessageParams{
 			DiscordMessageID: discordMessageId,
 			DiscordChannelID: discordChannelId,
@@ -337,7 +337,7 @@ func (p *pollsRepository) UpdatePollStatus(
 	pollId int,
 	status bool,
 ) error {
-	err := p.q.Transaction(func(q *queries.Queries) error {
+	err := p.q.Transaction(ctx, func(q *queries.Queries) error {
 		err := q.UpdatePollStatus(ctx, queries.UpdatePollStatusParams{
 			ID:       int32(pollId),
 			IsActive: status,
@@ -356,7 +356,7 @@ func (p *pollsRepository) AddPollOption(
 ) (*domain.PollOption, error) {
 	result := &domain.PollOption{}
 
-	err := p.q.Transaction(func(q *queries.Queries) error {
+	err := p.q.Transaction(ctx, func(q *queries.Queries) error {
 		newOption, err := q.CreatePollOption(ctx, queries.CreatePollOptionParams{
 			Title:  pollOption,
 			PollID: int32(pollId),
@@ -384,7 +384,7 @@ func (p *pollsRepository) RemovePollOption(
 	ctx context.Context,
 	optionId int,
 ) error {
-	err := p.q.Transaction(func(q *queries.Queries) error {
+	err := p.q.Transaction(ctx, func(q *queries.Queries) error {
 		err := q.DeletePollOption(ctx, int32(optionId))
 
 		return err
