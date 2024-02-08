@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 )
 
 func (h *Handler) sendPollMessage(
@@ -34,6 +35,40 @@ func (h *Handler) sendPollMessage(
 		deleteErr := h.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
 
 		return errors.Join(domain.ErrInternal, deleteErr, err)
+	}
+
+	return nil
+}
+
+func (h *Handler) updatePollMessages(
+	poll *domain.PollWithDetails,
+	i *discordgo.Interaction,
+	f ...*discordgo.MessageEmbedField) error {
+	actionRows := h.buildActionRows(poll, i.ID)
+	pollEmbed := buildPollEmbed(poll, i.Member.User)
+
+	if len(f) > 0 {
+		pollEmbed[0].Fields = append(pollEmbed[0].Fields, f...)
+	}
+
+	var wg *errgroup.Group
+	for _, msg := range poll.Messages {
+		msg := msg
+		wg.Go(func() error {
+			_, err := h.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
+				ID:         msg.DiscordMessageID,
+				Channel:    msg.DiscordChannelID,
+				Content:    new(string),
+				Components: actionRows,
+				Embeds:     pollEmbed,
+			})
+
+			return err
+		})
+	}
+
+	if err := wg.Wait(); err != nil {
+		return errors.Join(domain.ErrInternal, err)
 	}
 
 	return nil

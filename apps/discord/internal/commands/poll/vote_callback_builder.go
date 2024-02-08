@@ -2,12 +2,10 @@ package poll
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
-	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 )
 
 func (h *Handler) BuildVoteButtonHandler(poll_id, option_id int32) func(*discordgo.Interaction) {
@@ -39,24 +37,6 @@ func (h *Handler) BuildVoteButtonHandler(poll_id, option_id int32) func(*discord
 
 		poll.Votes = append(poll.Votes, *newVote)
 
-		discordAuthor, err := h.Session.User(poll.Author.DiscordUserID)
-		if err != nil {
-			err = errors.Join(domain.ErrInternal, err)
-
-			return
-		}
-
-		pollEmbed := buildPollEmbed(poll, discordAuthor)
-		for _, msg := range poll.Messages {
-			_, err = h.Session.ChannelMessageEditEmbeds(
-				msg.DiscordChannelID,
-				msg.DiscordMessageID,
-				pollEmbed,
-			)
-			if err != nil {
-				err = errors.Join(domain.ErrInternal, err)
-				h.Log.Error("error editing poll message", slog.String("error", err.Error()))
-			}
-		}
+		err = h.updatePollMessages(poll, i)
 	}
 }
