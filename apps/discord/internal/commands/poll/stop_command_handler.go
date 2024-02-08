@@ -3,27 +3,18 @@ package poll
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 )
 
 func (h *Handler) stopPoll(
 	i *discordgo.Interaction,
 	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) {
-	var err error
-	defer func() {
-		err = helpers.InteractionResponseProcess(h.Session, i, "Опрос остановлен.", err)
-		if err != nil {
-			h.Log.Error("error editing an interaction response", slog.String("error", err.Error()))
-		}
-	}()
-
+) error {
 	ctx := context.Background()
 
 	optionsWithVotes := make(map[domain.PollOption]int)
@@ -32,21 +23,15 @@ func (h *Handler) stopPoll(
 
 	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
 	if err != nil {
-		err = errors.Join(domain.ErrInternal, err)
-
-		return
+		return errors.Join(domain.ErrInternal, err)
 	}
 
 	if poll.Author.DiscordUserID != i.Member.User.ID {
-		err = errors.Join(domain.ErrUserSide, domain.ErrNotAuthor)
-
-		return
+		return errors.Join(domain.ErrUserSide, domain.ErrNotAuthor)
 	}
 
 	if poll.Guild.DiscordGuildID != i.GuildID {
-		err = errors.Join(domain.ErrUserSide, domain.ErrWrongGuild)
-
-		return
+		return errors.Join(domain.ErrUserSide, domain.ErrWrongGuild)
 	}
 
 	var maxVotes int = 0
@@ -73,9 +58,7 @@ func (h *Handler) stopPoll(
 
 	discordAuthor, err := h.Session.User(poll.Author.DiscordUserID)
 	if err != nil {
-		err = errors.Join(domain.ErrInternal, err)
-
-		return
+		return errors.Join(domain.ErrInternal, err)
 	}
 
 	winnersList := lo.Map(winners, func(option domain.PollOption, _ int) string {
@@ -89,23 +72,28 @@ func (h *Handler) stopPoll(
 		Inline: true,
 	})
 
+	var wg *errgroup.Group
 	for _, msg := range poll.Messages {
-		_, err = h.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
-			ID:         msg.DiscordMessageID,
-			Channel:    msg.DiscordChannelID,
-			Embeds:     pollEmbed,
-			Components: make([]discordgo.MessageComponent, 0),
+		msg := msg
+		wg.Go(func() error {
+			_, err = h.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
+				ID:         msg.DiscordMessageID,
+				Channel:    msg.DiscordChannelID,
+				Embeds:     pollEmbed,
+				Components: make([]discordgo.MessageComponent, 0),
+			})
+
+			return err
 		})
-		if err != nil {
-			err = errors.Join(domain.ErrInternal, err)
-			h.Log.Error("error editing poll message", slog.String("error", err.Error()))
-		}
+	}
+	if err = wg.Wait(); err != nil {
+		return errors.Join(domain.ErrInternal, err)
 	}
 
 	err = h.Database.Polls().UpdatePollStatus(ctx, int(pollId), false)
 	if err != nil {
-		err = errors.Join(domain.ErrInternal, err)
-
-		return
+		return errors.Join(domain.ErrInternal, err)
 	}
+
+	return nil
 }
