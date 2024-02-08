@@ -25,11 +25,15 @@ const (
 	SubcommandRemoveOption = "remove-option"
 )
 
+type optionsMap = map[string]*discordgo.ApplicationCommandInteractionDataOption
+
 type Handler struct {
 	Log      logger.Logger
 	Database repository.DB
 	Pubsub   pubsub.PubSub
 	Session  *discordgo.Session
+
+	subcommandsHandlers map[string]func(*discordgo.Interaction, optionsMap) error
 }
 
 type HandlerOpts struct {
@@ -42,12 +46,22 @@ type HandlerOpts struct {
 }
 
 func NewHandler(opts HandlerOpts) *Handler {
-	return &Handler{
+	h := &Handler{
 		Log:      opts.Log,
 		Database: opts.Database,
 		Pubsub:   opts.Pubsub,
 		Session:  opts.Session,
 	}
+
+	h.subcommandsHandlers = map[string]func(*discordgo.Interaction, optionsMap) error{
+		SubcommandStart:        h.startPoll,
+		SubcommandStop:         h.stopPoll,
+		SubcommandStatus:       h.statusPoll,
+		SubcommandAddOption:    h.addPollOption,
+		SubcommandRemoveOption: h.removePollOption,
+	}
+
+	return h
 }
 
 func (h *Handler) Command() *discordgo.ApplicationCommand {
@@ -58,17 +72,14 @@ func (h *Handler) Callback() func(i *discordgo.Interaction) {
 	return func(i *discordgo.Interaction) {
 		commandOptions := helpers.BuildOptionsMap(i)
 
-		switch i.ApplicationCommandData().Options[0].Name {
-		case SubcommandStart:
-			h.startPoll(i, commandOptions)
-		case SubcommandStop:
-			h.stopPoll(i, commandOptions)
-		case SubcommandStatus:
-			h.statusPoll(i, commandOptions)
-		case SubcommandAddOption:
-			h.addPollOption(i, commandOptions)
-		case SubcommandRemoveOption:
-			h.removePollOption(i, commandOptions)
+		sh := h.subcommandsHandlers[i.ApplicationCommandData().Options[0].Name]
+		if sh == nil {
+			return
+		}
+
+		err := sh(i, commandOptions)
+		if err != nil {
+			_ = helpers.InteractionResponseProcess(h.Session, i, "", err)
 		}
 	}
 }
