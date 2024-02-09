@@ -29,11 +29,11 @@ func buildPollEmbed(
 	})
 
 	optionsPercentageBars := lo.Map(poll.Options, func(option domain.PollOption, i int) string {
-		votesForOption := lo.Filter(poll.Votes, func(vote domain.PollVote, _ int) bool {
+		votesForOption := lo.CountBy(poll.Votes, func(vote domain.PollVote) bool {
 			return vote.OptionID == option.ID
 		})
 
-		percentage := (float64(len(votesForOption)) / float64(totalVotes)) * 100
+		percentage := (float64(votesForOption) / float64(totalVotes)) * 100
 		if math.IsNaN(percentage) {
 			percentage = 0
 		}
