@@ -35,28 +35,19 @@ func (h *Handler) stopPoll(
 
 	var maxVotes int = 0
 	for _, option := range poll.Options {
-		optionVotes := lo.Filter(poll.Votes, func(v domain.PollVote, _ int) bool {
+		optionVotes := lo.CountBy(poll.Votes, func(v domain.PollVote) bool {
 			return v.OptionID == option.ID
 		})
-		optionVotesAmount := len(optionVotes)
 
-		optionsWithVotes[option] = optionVotesAmount
+		optionsWithVotes[option] = optionVotes
 
-		if optionVotesAmount > maxVotes {
-			maxVotes = optionVotesAmount
+		if optionVotes > maxVotes {
+			maxVotes = optionVotes
 		}
 	}
 
-	winners := make([]domain.PollOption, 0, len(poll.Options))
-
-	for _, option := range poll.Options {
-		if optionsWithVotes[option] == maxVotes {
-			winners = append(winners, option)
-		}
-	}
-
-	winnersList := lo.Map(winners, func(option domain.PollOption, _ int) string {
-		return option.Title
+	winners := lo.FilterMap(poll.Options, func(o domain.PollOption, _ int) (string, bool) {
+		return o.Title, optionsWithVotes[o] == maxVotes
 	})
 
 	err = h.updatePollMessages(&UpdatePollMessageData{
@@ -66,11 +57,14 @@ func (h *Handler) stopPoll(
 		fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Победители",
-				Value:  strings.Join(winnersList, ","),
+				Value:  strings.Join(winners, ","),
 				Inline: true,
 			},
 		},
 	})
+	if err != nil {
+		return "", err
+	}
 
 	err = h.Database.Polls().UpdatePollStatus(ctx, int(pollId), false)
 	if err != nil {
