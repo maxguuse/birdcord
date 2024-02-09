@@ -25,7 +25,7 @@ func (h *Handler) sendPollMessage(
 		Components: actionRows,
 	})
 	if err != nil {
-		return errors.Join(domain.ErrInternal, err)
+		return err
 	}
 
 	_, err = h.Database.Polls().CreatePollMessage(
@@ -34,7 +34,7 @@ func (h *Handler) sendPollMessage(
 	if err != nil {
 		deleteErr := h.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
 
-		return errors.Join(domain.ErrInternal, deleteErr, err)
+		return errors.Join(deleteErr, err)
 	}
 
 	return nil
@@ -74,7 +74,7 @@ func (h *Handler) updatePollMessages(data *UpdatePollMessageData) error {
 	}
 
 	if err := wg.Wait(); err != nil {
-		return errors.Join(domain.ErrInternal, err)
+		return err
 	}
 
 	return nil

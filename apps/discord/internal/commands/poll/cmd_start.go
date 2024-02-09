@@ -2,8 +2,10 @@ package poll
 
 import (
 	"context"
+	"errors"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 )
 
 func (h *Handler) startPoll(
@@ -14,17 +16,17 @@ func (h *Handler) startPoll(
 
 	optionsList, err := processPollOptions(options["options"].StringValue())
 	if err != nil {
-		return "", err
+		return "", err //TODO replace
 	}
 
 	guild, err := h.Database.Guilds().GetGuildByDiscordID(ctx, i.GuildID)
 	if err != nil {
-		return "", err
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	user, err := h.Database.Users().GetUserByDiscordID(ctx, i.Member.User.ID)
 	if err != nil {
-		return "", err
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	poll, err := h.Database.Polls().CreatePoll(
@@ -35,12 +37,12 @@ func (h *Handler) startPoll(
 		optionsList,
 	)
 	if err != nil {
-		return "", err
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	err = h.sendPollMessage(ctx, i, poll, optionsList)
 	if err != nil {
-		return "", err
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	return "Опрос успешно создан.", nil

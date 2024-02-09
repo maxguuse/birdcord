@@ -63,7 +63,7 @@ func (h *Handler) stopPoll(
 		},
 	})
 	if err != nil {
-		return "", err
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	err = h.Database.Polls().UpdatePollStatus(ctx, int(pollId), false)

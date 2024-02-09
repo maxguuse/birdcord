@@ -33,7 +33,7 @@ func (h *Handler) removePollOption(
 
 	err = h.Database.Polls().RemovePollOption(ctx, int(optionId))
 	if err != nil {
-		return "", err
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	poll.Options = lo.Filter(poll.Options, func(o domain.PollOption, _ int) bool {
@@ -45,7 +45,7 @@ func (h *Handler) removePollOption(
 		interaction: i,
 	})
 	if err != nil {
-		return "", err
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	return "Вариант опроса успешно удален.", nil

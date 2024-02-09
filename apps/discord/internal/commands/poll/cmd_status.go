@@ -34,7 +34,7 @@ func (h *Handler) statusPoll(
 		return option.Title
 	}))
 	if err != nil {
-		return "", err
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	return "Опрос успешно отправлен.", nil
