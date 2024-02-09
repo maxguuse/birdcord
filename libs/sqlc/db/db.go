@@ -14,12 +14,12 @@ type DB struct {
 	pool    *pgxpool.Pool
 }
 
-func New(cfg *config.Config) (*DB, error) {
+func MustInit(cfg *config.Config) *DB {
 	ctx := context.Background()
 
 	pool, err := pgxpool.New(ctx, cfg.ConnectionString)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	err = pool.Ping(ctx)
@@ -30,17 +30,24 @@ func New(cfg *config.Config) (*DB, error) {
 	return &DB{
 		pool:    pool,
 		queries: queries.New(pool),
-	}, nil
+	}
 }
 
 func (p *DB) Queries() *queries.Queries {
 	return p.queries
 }
 
+var (
+	ErrTransactionFailed = errors.New("transaction failed")
+	ErrTxBegin           = errors.New("could not begin transaction")
+	ErrTxCommit          = errors.New("could not commit transaction")
+	ErrTxRollback        = errors.New("could not rollback transaction")
+)
+
 func (p *DB) Transaction(ctx context.Context, f func(*queries.Queries) error) error {
 	tx, err := p.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return errors.Join(ErrTxBegin, err)
 	}
 
 	q := p.queries.WithTx(tx)
@@ -48,8 +55,18 @@ func (p *DB) Transaction(ctx context.Context, f func(*queries.Queries) error) er
 	err = f(q)
 
 	if err != nil {
-		return errors.Join(tx.Rollback(ctx), err)
+		tErr := tx.Rollback(ctx)
+		if tErr != nil {
+			return errors.Join(ErrTxRollback, tErr, err)
+		}
+
+		return errors.Join(ErrTransactionFailed, err)
 	}
 
-	return tx.Commit(ctx)
+	cErr := tx.Commit(ctx)
+	if cErr != nil {
+		return errors.Join(ErrTxCommit, cErr)
+	}
+
+	return nil
 }

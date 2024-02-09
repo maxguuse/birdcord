@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
@@ -42,23 +41,23 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 		)
 	}
 
-	guildsIds := lo.Map(r.Guilds, func(g *discordgo.Guild, _ int) string {
-		c.Log.Info(
-			"Connected guild",
-			slog.String("id", g.ID),
-			slog.String("name", g.Name),
-		)
+	// guildsIds := lo.Map(r.Guilds, func(g *discordgo.Guild, _ int) string {
+	// 	c.Log.Info(
+	// 		"Connected guild",
+	// 		slog.String("id", g.ID),
+	// 		slog.String("name", g.Name),
+	// 	)
 
-		return g.ID
-	})
+	// 	return g.ID
+	// })
 
-	newGuildsCount, err := c.Database.Queries().CreateGuilds(context.Background(), guildsIds)
-	if err != nil {
-		panic(err)
-	}
+	// newGuildsCount, err := c.Database.Queries().CreateGuilds(context.Background(), guildsIds)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	c.Log.Info(
-		"Created guilds",
-		slog.Int("new", int(newGuildsCount)),
-	)
+	// c.Log.Info(
+	// 	"Created guilds",
+	// 	slog.Int("new", int(newGuildsCount)),
+	// )
 }
