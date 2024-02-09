@@ -40,24 +40,4 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 			slog.String("error", err.Error()),
 		)
 	}
-
-	// guildsIds := lo.Map(r.Guilds, func(g *discordgo.Guild, _ int) string {
-	// 	c.Log.Info(
-	// 		"Connected guild",
-	// 		slog.String("id", g.ID),
-	// 		slog.String("name", g.Name),
-	// 	)
-
-	// 	return g.ID
-	// })
-
-	// newGuildsCount, err := c.Database.Queries().CreateGuilds(context.Background(), guildsIds)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// c.Log.Info(
-	// 	"Created guilds",
-	// 	slog.Int("new", int(newGuildsCount)),
-	// )
 }
