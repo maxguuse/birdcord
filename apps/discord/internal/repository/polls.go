@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
@@ -81,41 +82,46 @@ func (p *pollsRepository) CreatePoll(
 			GuildID: int32(guildID),
 		})
 		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
+			return err
+		}
+
+		author, err := q.GetUserById(ctx, int32(authorID))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return &NotFoundError{
+				Resource: "user",
+			}
+		} else if err != nil {
+			return err
+		}
+
+		guild, err := q.GetGuildByID(ctx, int32(guildID))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return &NotFoundError{
+				Resource: "guild",
+			}
+		} else if err != nil {
+			return err
+		}
+
+		options, err := q.CreatePollOptions(ctx, queries.CreatePollOptionsParams{
+			Titles: pollOptions,
+			PollID: poll.ID,
+		})
+		if err != nil {
+			return err
 		}
 
 		result.ID = int(poll.ID)
 		result.Title = poll.Title
 		result.CreatedAt = poll.CreatedAt.Time
-
-		author, err := q.GetUserById(ctx, int32(authorID))
-		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
-		}
-
 		result.Author = domain.PollAuthor{
 			ID:            int(author.ID),
 			DiscordUserID: author.DiscordUserID,
 		}
-
-		guild, err := q.GetGuildByID(ctx, int32(guildID))
-		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
-		}
-
 		result.Guild = domain.PollGuild{
 			ID:             int(guild.ID),
 			DiscordGuildID: guild.DiscordGuildID,
 		}
-
-		options, err := q.CreatePollOptions(ctx, queries.CreatePollOptionsParams{
-			Titles: pollOptions,
-			PollID: int32(result.ID),
-		})
-		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
-		}
-
 		result.Options = lo.Map(options, func(r queries.CreatePollOptionsRow, _ int) domain.PollOption {
 			return domain.PollOption{
 				ID:    int(r.PollOption.ID),
@@ -140,40 +146,73 @@ func (p *pollsRepository) GetPollWithDetails(
 
 	err := p.q.Transaction(ctx, func(q *queries.Queries) error {
 		poll, err := q.GetPoll(ctx, int32(id))
-		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return &NotFoundError{
+				Resource: "poll",
+			}
+		} else if err != nil {
+			return err
+		}
+
+		user, err := q.GetUserById(ctx, poll.AuthorID.Int32)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return &NotFoundError{
+				Resource: "user",
+			}
+		} else if err != nil {
+			return err
+		}
+
+		guild, err := q.GetGuildByID(ctx, poll.GuildID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return &NotFoundError{
+				Resource: "guild",
+			}
+		} else if err != nil {
+			return err
+		}
+
+		pollMessages, err := q.GetFullPollMessages(ctx, poll.ID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			pollMessages = make([]queries.GetFullPollMessagesRow, 0)
+		} else if err != nil {
+			return err
+		}
+
+		pollOptions, err := q.GetPollOptions(ctx, poll.ID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return &NotFoundError{
+				Resource: "poll options",
+			}
+		} else if err != nil {
+			return err
+		}
+
+		pollVotes, err := q.GetPollVotes(ctx, poll.ID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			pollVotes = make([]queries.PollVote, 0)
+		} else if err != nil {
+			return err
 		}
 
 		result.ID = int(poll.ID)
 		result.Title = poll.Title
 		result.CreatedAt = poll.CreatedAt.Time
 		result.IsActive = poll.IsActive
-
-		user, err := q.GetUserById(ctx, poll.AuthorID.Int32)
-		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
-		}
-
 		result.Author = domain.PollAuthor{
 			ID:            int(user.ID),
 			DiscordUserID: user.DiscordUserID,
 		}
-
-		guild, err := q.GetGuildByID(ctx, poll.GuildID)
-		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
-		}
-
 		result.Guild = domain.PollGuild{
 			ID:             int(guild.ID),
 			DiscordGuildID: guild.DiscordGuildID,
 		}
-
-		pollMessages, err := q.GetFullPollMessages(ctx, poll.ID)
-		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
-		}
-
+		result.Options = lo.Map(pollOptions, func(o queries.PollOption, _ int) domain.PollOption {
+			return domain.PollOption{
+				ID:    int(o.ID),
+				Title: o.Title,
+			}
+		})
 		result.Messages = lo.Map(
 			pollMessages,
 			func(m queries.GetFullPollMessagesRow, _ int) domain.PollMessage {
@@ -184,24 +223,6 @@ func (p *pollsRepository) GetPollWithDetails(
 					DiscordChannelID: m.DiscordChannelID.String,
 				}
 			})
-
-		pollOptions, err := q.GetPollOptions(ctx, poll.ID)
-		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
-		}
-
-		result.Options = lo.Map(pollOptions, func(o queries.PollOption, _ int) domain.PollOption {
-			return domain.PollOption{
-				ID:    int(o.ID),
-				Title: o.Title,
-			}
-		})
-
-		pollVotes, err := q.GetPollVotes(ctx, poll.ID)
-		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
-		}
-
 		result.Votes = lo.Map(pollVotes, func(v queries.PollVote, _ int) domain.PollVote {
 			return domain.PollVote{
 				ID:       int(v.ID),
@@ -234,8 +255,12 @@ func (p *pollsRepository) GetActivePolls(
 				Valid: true,
 			},
 		})
-		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return &NotFoundError{
+				Resource: "active polls",
+			}
+		} else if err != nil {
+			return err
 		}
 
 		result = lo.Map(polls, func(p queries.Poll, _ int) *domain.Poll {
@@ -271,10 +296,10 @@ func (p *pollsRepository) TryAddVote(
 
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return errors.New("already voted") //TODO extract error
+			return ErrAlreadyExists
 		}
 		if err != nil {
-			return errors.Join(domain.ErrInternal, err)
+			return err
 		}
 
 		result.ID = int(vote.ID)
@@ -359,10 +384,7 @@ func (p *pollsRepository) AddPollOption(
 			PollID: int32(pollId),
 		})
 		if err != nil {
-			return errors.Join(
-				domain.ErrInternal,
-				err,
-			)
+			return err
 		}
 
 		result.ID = int(newOption.ID)
