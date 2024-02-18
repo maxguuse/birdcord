@@ -7,7 +7,7 @@ import (
 
 var NewFx = fx.Options(
 	fx.Provide(
-		postgres.New,
+		postgres.MustInit,
 
 		NewGuildsRepository,
 		NewPollsRepository,

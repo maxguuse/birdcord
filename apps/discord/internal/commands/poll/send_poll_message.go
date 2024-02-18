@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 )
 
 func (h *Handler) sendPollMessage(
@@ -24,7 +25,7 @@ func (h *Handler) sendPollMessage(
 		Components: actionRows,
 	})
 	if err != nil {
-		return errors.Join(domain.ErrInternal, err)
+		return err
 	}
 
 	_, err = h.Database.Polls().CreatePollMessage(
@@ -33,7 +34,47 @@ func (h *Handler) sendPollMessage(
 	if err != nil {
 		deleteErr := h.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
 
-		return errors.Join(domain.ErrInternal, deleteErr, err)
+		return errors.Join(deleteErr, err)
+	}
+
+	return nil
+}
+
+type UpdatePollMessageData struct {
+	poll        *domain.PollWithDetails
+	interaction *discordgo.Interaction
+	stop        bool
+	fields      []*discordgo.MessageEmbedField
+}
+
+func (h *Handler) updatePollMessages(data *UpdatePollMessageData) error {
+	actionRows := lo.
+		If(data.stop, make([]discordgo.MessageComponent, 0)).
+		Else(h.buildActionRows(data.poll, data.interaction.ID))
+	pollEmbed := buildPollEmbed(data.poll, data.interaction.Member.User)
+
+	if len(data.fields) > 0 {
+		pollEmbed[0].Fields = append(pollEmbed[0].Fields, data.fields...)
+	}
+
+	wg := new(errgroup.Group)
+	for _, msg := range data.poll.Messages {
+		msg := msg
+		wg.Go(func() error {
+			_, err := h.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
+				ID:         msg.DiscordMessageID,
+				Channel:    msg.DiscordChannelID,
+				Content:    new(string),
+				Components: actionRows,
+				Embeds:     pollEmbed,
+			})
+
+			return err
+		})
+	}
+
+	if err := wg.Wait(); err != nil {
+		return err
 	}
 
 	return nil
@@ -52,7 +93,7 @@ func (h *Handler) buildActionRows(
 			CustomID: customId,
 		})
 
-		_ = h.Pubsub.Subscribe(customId, h.VoteBuilder.Build(
+		_ = h.Pubsub.Subscribe(customId, h.BuildVoteButtonHandler(
 			int32(poll.ID), int32(option.ID),
 		))
 	}

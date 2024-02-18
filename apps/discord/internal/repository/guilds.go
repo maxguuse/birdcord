@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	postgres "github.com/maxguuse/birdcord/libs/sqlc/db"
 	"github.com/maxguuse/birdcord/libs/sqlc/queries"
@@ -32,13 +33,17 @@ func (g *guildsRepository) GetGuildByDiscordID(
 ) (*domain.Guild, error) {
 	result := &domain.Guild{}
 
-	err := g.q.Transaction(func(q *queries.Queries) error {
+	err := g.q.Transaction(ctx, func(q *queries.Queries) error {
 		guild, err := q.GetGuildByDiscordID(ctx, id)
+		if errors.Is(err, pgx.ErrNoRows) {
+			guild, err = q.CreateGuild(ctx, id)
+			if err != nil {
+				return err
+			}
+		}
+
 		if err != nil {
-			return errors.Join(
-				domain.ErrInternal,
-				err,
-			)
+			return err
 		}
 
 		result.ID = int(guild.ID)

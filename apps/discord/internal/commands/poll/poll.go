@@ -13,7 +13,6 @@ import (
 
 var NewFx = fx.Options(
 	fx.Provide(
-		NewVoteCallbackBuilder,
 		NewHandler,
 	),
 )
@@ -26,32 +25,43 @@ const (
 	SubcommandRemoveOption = "remove-option"
 )
 
+type optionsMap = map[string]*discordgo.ApplicationCommandInteractionDataOption
+
 type Handler struct {
-	Log         logger.Logger
-	Database    repository.DB
-	Pubsub      pubsub.PubSub
-	Session     *discordgo.Session
-	VoteBuilder *VoteCallbackBuilder
+	Log      logger.Logger
+	Database repository.DB
+	Pubsub   pubsub.PubSub
+	Session  *discordgo.Session
+
+	subcommandsHandlers map[string]func(*discordgo.Interaction, optionsMap) (string, error)
 }
 
 type HandlerOpts struct {
 	fx.In
 
-	Log         logger.Logger
-	Database    repository.DB
-	Pubsub      pubsub.PubSub
-	Session     *discordgo.Session
-	VoteBuilder *VoteCallbackBuilder
+	Log      logger.Logger
+	Database repository.DB
+	Pubsub   pubsub.PubSub
+	Session  *discordgo.Session
 }
 
 func NewHandler(opts HandlerOpts) *Handler {
-	return &Handler{
-		Log:         opts.Log,
-		Database:    opts.Database,
-		Pubsub:      opts.Pubsub,
-		Session:     opts.Session,
-		VoteBuilder: opts.VoteBuilder,
+	h := &Handler{
+		Log:      opts.Log,
+		Database: opts.Database,
+		Pubsub:   opts.Pubsub,
+		Session:  opts.Session,
 	}
+
+	h.subcommandsHandlers = map[string]func(*discordgo.Interaction, optionsMap) (string, error){
+		SubcommandStart:        h.startPoll,
+		SubcommandStop:         h.stopPoll,
+		SubcommandStatus:       h.statusPoll,
+		SubcommandAddOption:    h.addPollOption,
+		SubcommandRemoveOption: h.removePollOption,
+	}
+
+	return h
 }
 
 func (h *Handler) Command() *discordgo.ApplicationCommand {
@@ -62,17 +72,15 @@ func (h *Handler) Callback() func(i *discordgo.Interaction) {
 	return func(i *discordgo.Interaction) {
 		commandOptions := helpers.BuildOptionsMap(i)
 
-		switch i.ApplicationCommandData().Options[0].Name {
-		case SubcommandStart:
-			h.startPoll(i, commandOptions)
-		case SubcommandStop:
-			h.stopPoll(i, commandOptions)
-		case SubcommandStatus:
-			h.statusPoll(i, commandOptions)
-		case SubcommandAddOption:
-			h.addPollOption(i, commandOptions)
-		case SubcommandRemoveOption:
-			h.removePollOption(i, commandOptions)
+		sh := h.subcommandsHandlers[i.ApplicationCommandData().Options[0].Name]
+		if sh == nil {
+			return
+		}
+
+		res, err := sh(i, commandOptions)
+		err = helpers.InteractionResponseProcess(h.Session, i, res, err)
+		if err != nil {
+			h.Log.Error("error processing interaction", slog.String("error", err.Error()))
 		}
 	}
 }
