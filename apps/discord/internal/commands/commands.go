@@ -5,7 +5,9 @@ import (
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands/liverole"
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands/poll"
 	"github.com/maxguuse/birdcord/libs/pubsub"
+	"github.com/samber/lo"
 	"go.uber.org/fx"
+	"golang.org/x/sync/errgroup"
 )
 
 type Command interface {
@@ -42,16 +44,26 @@ func New(opts HandlerOpts) *Handler {
 }
 
 func (h *Handler) Register() error {
-	discordCommands := make([]*discordgo.ApplicationCommand, 0, len(h.Commands))
+	discordCommands := lo.Map(h.Commands, func(cmd Command, _ int) *discordgo.ApplicationCommand {
+		return cmd.Command()
+	})
 
+	wg := new(errgroup.Group)
 	for _, cmd := range h.Commands {
-		discordCommands = append(discordCommands, cmd.Command())
+		cmd := cmd
 
-		go h.Pubsub.Subscribe(cmd.Command().Name+":command", cmd.Callback())
+		wg.Go(func() error {
+			return h.Pubsub.Subscribe(cmd.Command().Name+":command", cmd.Callback())
+		})
 
 		if callback, exists := cmd.Autocomplete(); exists {
-			go h.Pubsub.Subscribe(cmd.Command().Name+":autocomplete", callback)
+			wg.Go(func() error {
+				return h.Pubsub.Subscribe(cmd.Command().Name+":autocomplete", callback)
+			})
 		}
+	}
+	if err := wg.Wait(); err != nil {
+		return err
 	}
 
 	_, err := h.Session.ApplicationCommandBulkOverwrite(h.Session.State.User.ID, "", discordCommands)

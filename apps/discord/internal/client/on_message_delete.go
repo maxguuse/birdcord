@@ -11,7 +11,7 @@ import (
 func (c *Client) onMessageDelete(_ *discordgo.Session, m *discordgo.MessageDelete) {
 	ctx := context.Background()
 
-	err := c.Database.Transaction(func(q *queries.Queries) error {
+	err := c.Database.Transaction(ctx, func(q *queries.Queries) error {
 		msg, err := q.GetMessageByDiscordID(ctx, m.ID)
 		if err != nil {
 			return err

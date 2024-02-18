@@ -33,36 +33,27 @@ func interactionRespondSuccess(msg string, session *discordgo.Session, i *discor
 }
 
 func interactionRespondError(inErr error, session *discordgo.Session, i *discordgo.Interaction) error {
-	var err error
+	var response string
+	var usersideErr *domain.UsersideError
 	msg := "Произошла ошибка"
 
-	if errors.Is(inErr, domain.ErrUserSide) {
-		var response string
-		switch {
-		case errors.Is(inErr, domain.ErrInternal):
-			response = "Внутренняя ошибка"
-		case errors.Is(inErr, domain.ErrWrongPollOptionLength):
-			response = "Длина варианта опроса не может быть больше 50 или меньше 1 символа"
-		case errors.Is(inErr, domain.ErrAlreadyVoted):
-			response = "Вы уже проголосовали в этом опросе"
-		case errors.Is(inErr, domain.ErrWrongPollOptionsAmount):
-			response = "Количество вариантов опроса должно быть от 2 до 25 включительно"
-		case errors.Is(inErr, domain.ErrNotAuthor):
-			response = "Для остановки опроса нужно быть его автором"
-		case errors.Is(inErr, domain.ErrWrongGuild):
-			response = "Опроса не существует"
-		default:
-			response = inErr.Error()
-		}
-		_, err = session.InteractionResponseEdit(i, &discordgo.WebhookEdit{
-			Content: &msg,
-			Embeds: &[]*discordgo.MessageEmbed{
-				{
-					Description: response,
-				},
-			},
-		})
+	switch {
+	case errors.Is(inErr, domain.ErrInternal):
+		response = "Внутренняя ошибка"
+	case errors.As(inErr, &usersideErr):
+		response = usersideErr.Error()
+	default:
+		response = "Произошла неизвестная ошибка"
 	}
+
+	_, err := session.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+		Content: &msg,
+		Embeds: &[]*discordgo.MessageEmbed{
+			{
+				Description: response,
+			},
+		},
+	})
 
 	return err
 }
