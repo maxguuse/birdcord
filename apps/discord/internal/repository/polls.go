@@ -87,18 +87,14 @@ func (p *pollsRepository) CreatePoll(
 
 		author, err := q.GetUserById(ctx, int32(authorID))
 		if errors.Is(err, pgx.ErrNoRows) {
-			return &NotFoundError{
-				Resource: "user",
-			}
+			return ErrUserNotFound
 		} else if err != nil {
 			return err
 		}
 
 		guild, err := q.GetGuildByID(ctx, int32(guildID))
 		if errors.Is(err, pgx.ErrNoRows) {
-			return &NotFoundError{
-				Resource: "guild",
-			}
+			return ErrGuildNotFound
 		} else if err != nil {
 			return err
 		}
@@ -147,27 +143,21 @@ func (p *pollsRepository) GetPollWithDetails(
 	err := p.q.Transaction(ctx, func(q *queries.Queries) error {
 		poll, err := q.GetPoll(ctx, int32(id))
 		if errors.Is(err, pgx.ErrNoRows) {
-			return &NotFoundError{
-				Resource: "poll",
-			}
+			return ErrPollNotFound
 		} else if err != nil {
 			return err
 		}
 
 		user, err := q.GetUserById(ctx, poll.AuthorID.Int32)
 		if errors.Is(err, pgx.ErrNoRows) {
-			return &NotFoundError{
-				Resource: "user",
-			}
+			return ErrUserNotFound
 		} else if err != nil {
 			return err
 		}
 
 		guild, err := q.GetGuildByID(ctx, poll.GuildID)
 		if errors.Is(err, pgx.ErrNoRows) {
-			return &NotFoundError{
-				Resource: "guild",
-			}
+			return ErrGuildNotFound
 		} else if err != nil {
 			return err
 		}
@@ -181,9 +171,7 @@ func (p *pollsRepository) GetPollWithDetails(
 
 		pollOptions, err := q.GetPollOptions(ctx, poll.ID)
 		if errors.Is(err, pgx.ErrNoRows) {
-			return &NotFoundError{
-				Resource: "poll options",
-			}
+			return ErrPollOptionNotFound
 		} else if err != nil {
 			return err
 		}
@@ -256,9 +244,7 @@ func (p *pollsRepository) GetActivePolls(
 			},
 		})
 		if errors.Is(err, pgx.ErrNoRows) {
-			return &NotFoundError{
-				Resource: "active polls",
-			}
+			return ErrPollNotFound
 		} else if err != nil {
 			return err
 		}

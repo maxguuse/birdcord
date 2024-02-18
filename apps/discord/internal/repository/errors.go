@@ -12,4 +12,16 @@ func (e *NotFoundError) Error() string {
 
 var (
 	ErrAlreadyExists = errors.New("already exists")
+	ErrUserNotFound  = &NotFoundError{
+		Resource: "user",
+	}
+	ErrPollNotFound = &NotFoundError{
+		Resource: "poll",
+	}
+	ErrGuildNotFound = &NotFoundError{
+		Resource: "guild",
+	}
+	ErrPollOptionNotFound = &NotFoundError{
+		Resource: "poll option",
+	}
 )
