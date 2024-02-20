@@ -24,11 +24,15 @@ const (
 	SubcommandClear  = "clear"
 )
 
+type optionsMap = map[string]*discordgo.ApplicationCommandInteractionDataOption
+
 type Handler struct {
 	Log      logger.Logger
 	Database repository.DB
 	Pubsub   pubsub.PubSub
 	Session  *discordgo.Session
+
+	subcommandsHandlers map[string]func(*discordgo.Interaction, optionsMap) (string, error)
 }
 
 type HandlerOpts struct {
@@ -41,12 +45,21 @@ type HandlerOpts struct {
 }
 
 func NewHandler(opts HandlerOpts) *Handler {
-	return &Handler{
+	h := &Handler{
 		Log:      opts.Log,
 		Database: opts.Database,
 		Pubsub:   opts.Pubsub,
 		Session:  opts.Session,
 	}
+
+	h.subcommandsHandlers = map[string]func(*discordgo.Interaction, optionsMap) (string, error){
+		SubcommandAdd:    h.addLiveRole,
+		SubcommandRemove: h.removeLiveRole,
+		SubcommandList:   h.listLiveRoles,
+		SubcommandClear:  h.clearLiveRoles,
+	}
+
+	return h
 }
 
 func (h *Handler) Command() *discordgo.ApplicationCommand {
