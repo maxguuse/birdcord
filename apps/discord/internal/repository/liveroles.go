@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	postgres "github.com/maxguuse/birdcord/libs/sqlc/db"
 	"github.com/maxguuse/birdcord/libs/sqlc/queries"
@@ -19,6 +21,11 @@ type LiverolesRepository interface {
 		ctx context.Context,
 		guildId int,
 	) ([]*domain.Liverole, error)
+	GetLiverole(
+		ctx context.Context,
+		guildID int,
+		discordRoleID string,
+	) (*domain.Liverole, error)
 	DeleteLiverole(
 		ctx context.Context,
 		roleID int,
@@ -57,6 +64,10 @@ func (l *liverolesRepository) CreateLiverole(
 		}
 
 		liverole, err := q.CreateLiveRole(ctx, role.ID)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrAlreadyExists
+		}
 		if err != nil {
 			return err
 		}
@@ -130,6 +141,35 @@ func (l *liverolesRepository) GetLiveroles(
 				DiscordRoleID: liverole.DiscordRoleID.String,
 			}
 		})
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (l *liverolesRepository) GetLiverole(
+	ctx context.Context,
+	guildId int,
+	discordRoleID string,
+) (*domain.Liverole, error) {
+	result := &domain.Liverole{}
+
+	err := l.q.Transaction(ctx, func(q *queries.Queries) error {
+		liverole, err := q.GetLiveRoleByDiscordID(ctx, queries.GetLiveRoleByDiscordIDParams{
+			DiscordRoleID: discordRoleID,
+			GuildID:       int32(guildId),
+		})
+		if err != nil {
+			return err
+		}
+
+		result.ID = int(liverole.ID)
+		result.DiscordRoleID = liverole.DiscordRoleID.String
+		result.GuildID = int(liverole.GuildID.Int32)
 
 		return nil
 	})

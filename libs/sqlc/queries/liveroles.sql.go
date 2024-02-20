@@ -31,6 +31,39 @@ func (q *Queries) DeleteLiveRoleByRoleID(ctx context.Context, roleID int32) erro
 	return err
 }
 
+const getLiveRoleByDiscordID = `-- name: GetLiveRoleByDiscordID :one
+SELECT liveroles.id, role_id, roles.id, guild_id, discord_role_id FROM liveroles
+LEFT JOIN roles ON liveroles.role_id = roles.id
+WHERE roles.discord_role_id = $1
+AND roles.guild_id = $2
+`
+
+type GetLiveRoleByDiscordIDParams struct {
+	DiscordRoleID string `json:"discord_role_id"`
+	GuildID       int32  `json:"guild_id"`
+}
+
+type GetLiveRoleByDiscordIDRow struct {
+	ID            int32       `json:"id"`
+	RoleID        int32       `json:"role_id"`
+	ID_2          pgtype.Int4 `json:"id_2"`
+	GuildID       pgtype.Int4 `json:"guild_id"`
+	DiscordRoleID pgtype.Text `json:"discord_role_id"`
+}
+
+func (q *Queries) GetLiveRoleByDiscordID(ctx context.Context, arg GetLiveRoleByDiscordIDParams) (GetLiveRoleByDiscordIDRow, error) {
+	row := q.db.QueryRow(ctx, getLiveRoleByDiscordID, arg.DiscordRoleID, arg.GuildID)
+	var i GetLiveRoleByDiscordIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.RoleID,
+		&i.ID_2,
+		&i.GuildID,
+		&i.DiscordRoleID,
+	)
+	return i, err
+}
+
 const getLiveRolesByGuildID = `-- name: GetLiveRolesByGuildID :many
 SELECT liveroles.id, role_id, roles.id, guild_id, discord_role_id FROM liveroles 
 LEFT JOIN roles ON liveroles.role_id = roles.id
