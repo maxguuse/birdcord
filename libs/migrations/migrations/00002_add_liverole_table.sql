@@ -13,8 +13,8 @@ CREATE TABLE "liveroles" (
     "role_id" int NOT NULL
 );
 
-ALTER TABLE "roles" ADD FOREIGN KEY ("guild_id") REFERENCES "guilds" ("id");
-ALTER TABLE "liveroles" ADD FOREIGN KEY ("role_id") REFERENCES "roles" ("id");
+ALTER TABLE "roles" ADD FOREIGN KEY ("guild_id") REFERENCES "guilds" ("id") ON DELETE CASCADE;
+ALTER TABLE "liveroles" ADD FOREIGN KEY ("role_id") REFERENCES "roles" ("id") ON DELETE CASCADE;
 -- +goose StatementEnd
 
 -- +goose Down
