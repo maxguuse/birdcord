@@ -2,6 +2,7 @@ package liverole
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -18,12 +19,12 @@ func (h *Handler) listLiveRoles(
 
 	guild, err := h.Database.Guilds().GetGuildByDiscordID(ctx, i.GuildID)
 	if err != nil {
-		return "", err
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	liveroles, err := h.Database.Liveroles().GetLiveroles(ctx, guild.ID)
 	if err != nil {
-		return "", err
+		return "", errors.Join(domain.ErrInternal, err)
 	}
 
 	if len(liveroles) == 0 {
