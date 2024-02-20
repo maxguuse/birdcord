@@ -13,6 +13,12 @@ type Guild struct {
 	DiscordGuildID string `json:"discord_guild_id"`
 }
 
+type Liverole struct {
+	ID      int32 `json:"id"`
+	GuildID int32 `json:"guild_id"`
+	RoleID  int32 `json:"role_id"`
+}
+
 type Message struct {
 	ID               int32  `json:"id"`
 	DiscordMessageID string `json:"discord_message_id"`
@@ -45,6 +51,11 @@ type PollVote struct {
 	PollID   int32 `json:"poll_id"`
 	OptionID int32 `json:"option_id"`
 	UserID   int32 `json:"user_id"`
+}
+
+type Role struct {
+	ID            int32  `json:"id"`
+	DiscordRoleID string `json:"discord_role_id"`
 }
 
 type User struct {
