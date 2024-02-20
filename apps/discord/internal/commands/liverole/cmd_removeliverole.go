@@ -6,6 +6,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
+	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 )
 
 func (h *Handler) removeLiveRole(
@@ -22,8 +23,8 @@ func (h *Handler) removeLiveRole(
 	}
 
 	r, err := h.Database.Liveroles().GetLiverole(ctx, guild.ID, role.ID)
-	if err != nil {
-		return "", errors.Join(domain.ErrInternal, err)
+	if errors.Is(err, repository.ErrLiveroleNotFound) {
+		return "Live-роль не найдена.", nil
 	}
 
 	err = h.Database.Liveroles().DeleteLiverole(ctx, r.ID)

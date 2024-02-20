@@ -24,4 +24,7 @@ var (
 	ErrPollOptionNotFound = &NotFoundError{
 		Resource: "poll option",
 	}
+	ErrLiveroleNotFound = &NotFoundError{
+		Resource: "liverole",
+	}
 )

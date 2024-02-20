@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	postgres "github.com/maxguuse/birdcord/libs/sqlc/db"
@@ -163,7 +164,9 @@ func (l *liverolesRepository) GetLiverole(
 			DiscordRoleID: discordRoleID,
 			GuildID:       int32(guildId),
 		})
-		if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrLiveroleNotFound
+		} else if err != nil {
 			return err
 		}
 
