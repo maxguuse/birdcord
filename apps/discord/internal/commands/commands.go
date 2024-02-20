@@ -4,29 +4,27 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands/liverole"
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands/poll"
-	"github.com/maxguuse/birdcord/libs/pubsub"
-	"github.com/samber/lo"
+	"github.com/maxguuse/disroute"
 	"go.uber.org/fx"
-	"golang.org/x/sync/errgroup"
 )
 
 type Command interface {
-	Command() *discordgo.ApplicationCommand
-	Callback() func(i *discordgo.Interaction)
+	GetRoutes() *disroute.Cmd
+	GetDiscordGo() *discordgo.ApplicationCommand
 	Autocomplete() (func(i *discordgo.Interaction), bool)
 }
 
 type Handler struct {
 	Commands []Command
 	Session  *discordgo.Session
-	Pubsub   pubsub.PubSub
+	Router   *disroute.Router
 }
 
 type HandlerOpts struct {
 	fx.In
 
-	Pubsub  pubsub.PubSub
 	Session *discordgo.Session
+	Router  *disroute.Router
 
 	PollHandler     *poll.Handler
 	LiveroleHandler *liverole.Handler
@@ -39,34 +37,23 @@ func New(opts HandlerOpts) *Handler {
 			opts.LiveroleHandler,
 		},
 		Session: opts.Session,
-		Pubsub:  opts.Pubsub,
 	}
 }
 
 func (h *Handler) Register() error {
-	discordCommands := lo.Map(h.Commands, func(cmd Command, _ int) *discordgo.ApplicationCommand {
-		return cmd.Command()
-	})
-
-	wg := new(errgroup.Group)
+	routes := make([]*disroute.Cmd, 0, len(h.Commands))
+	discordgo := make([]*discordgo.ApplicationCommand, 0, len(h.Commands))
 	for _, cmd := range h.Commands {
-		cmd := cmd
-
-		wg.Go(func() error {
-			return h.Pubsub.Subscribe(cmd.Command().Name+":command", cmd.Callback())
-		})
-
-		if callback, exists := cmd.Autocomplete(); exists {
-			wg.Go(func() error {
-				return h.Pubsub.Subscribe(cmd.Command().Name+":autocomplete", callback)
-			})
-		}
+		routes = append(routes, cmd.GetRoutes())
+		discordgo = append(discordgo, cmd.GetDiscordGo())
 	}
-	if err := wg.Wait(); err != nil {
+
+	err := h.Router.RegisterAll(routes)
+	if err != nil {
 		return err
 	}
-
-	_, err := h.Session.ApplicationCommandBulkOverwrite(h.Session.State.User.ID, "", discordCommands)
+	//TODO add autocompletion here or to disroute
+	_, err = h.Session.ApplicationCommandBulkOverwrite(h.Session.State.User.ID, "", discordgo)
 	if err != nil {
 		return err
 	}
@@ -78,5 +65,8 @@ var NewFx = fx.Options(
 	poll.NewFx,
 	liverole.NewFx,
 
-	fx.Provide(New),
+	fx.Provide(
+		disroute.New,
+		New,
+	),
 )

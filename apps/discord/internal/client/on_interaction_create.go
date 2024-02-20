@@ -35,7 +35,7 @@ func (c *Client) onCommand(i *discordgo.InteractionCreate) {
 		return
 	}
 
-	c.Pubsub.Publish(i.ApplicationCommandData().Name+":command", i.Interaction)
+	c.CommandsHandler.Router.FindAndExecute(i) //TODO handle error
 }
 
 func (c *Client) onAutocomplete(i *discordgo.InteractionCreate) {
