@@ -60,3 +60,9 @@ type Guild struct {
 	ID             int
 	DiscordGuildID string
 }
+
+type Liverole struct {
+	ID            int
+	RoleID        int
+	DiscordRoleID string
+}
