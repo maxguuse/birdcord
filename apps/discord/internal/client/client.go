@@ -6,15 +6,19 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/commands"
+	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
 	"github.com/maxguuse/birdcord/libs/pubsub"
-	"github.com/maxguuse/birdcord/libs/sqlc/db"
 	"go.uber.org/fx"
 )
 
 func NewSession(cfg *config.Config) (*discordgo.Session, error) {
-	return discordgo.New("Bot " + cfg.DiscordToken)
+	s, err := discordgo.New("Bot " + cfg.DiscordToken)
+
+	s.Identify.Intents = discordgo.IntentsAll
+
+	return s, err
 }
 
 type Client struct {
@@ -22,7 +26,7 @@ type Client struct {
 
 	Cfg             *config.Config
 	Log             logger.Logger
-	Database        *db.DB
+	Database        repository.DB
 	Pubsub          pubsub.PubSub
 	CommandsHandler *commands.Handler
 }
@@ -32,7 +36,7 @@ type ClientOpts struct {
 	LC fx.Lifecycle
 
 	Log             logger.Logger
-	Database        *db.DB
+	Database        repository.DB
 	Pubsub          pubsub.PubSub
 	Cfg             *config.Config
 	Session         *discordgo.Session

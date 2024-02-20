@@ -10,10 +10,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func (h *Handler) stopPoll(
-	i *discordgo.Interaction,
-	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) (string, error) {
+func (h *Handler) stopPoll(i *discordgo.Interaction, options optionsMap) (string, error) {
 	ctx := context.Background()
 
 	optionsWithVotes := make(map[domain.PollOption]int)
