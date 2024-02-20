@@ -68,7 +68,18 @@ func (h *Handler) Command() *discordgo.ApplicationCommand {
 
 func (h *Handler) Callback() func(i *discordgo.Interaction) {
 	return func(i *discordgo.Interaction) {
-		_ = helpers.BuildOptionsMap(i)
+		commandOptions := helpers.BuildOptionsMap(i)
+
+		sh := h.subcommandsHandlers[i.ApplicationCommandData().Options[0].Name]
+		if sh == nil {
+			return
+		}
+
+		res, err := sh(i, commandOptions)
+		err = helpers.InteractionResponseProcess(h.Session, i, res, err)
+		if err != nil {
+			h.Log.Error("error processing interaction", slog.String("error", err.Error()))
+		}
 	}
 }
 
