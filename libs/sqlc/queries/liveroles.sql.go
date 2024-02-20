@@ -7,21 +7,18 @@ package queries
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createLiveRole = `-- name: CreateLiveRole :one
-INSERT INTO liveroles (guild_id, role_id) VALUES ($1, $2) RETURNING id, guild_id, role_id
+INSERT INTO liveroles (role_id) VALUES ($1) RETURNING id, role_id
 `
 
-type CreateLiveRoleParams struct {
-	GuildID int32 `json:"guild_id"`
-	RoleID  int32 `json:"role_id"`
-}
-
-func (q *Queries) CreateLiveRole(ctx context.Context, arg CreateLiveRoleParams) (Liverole, error) {
-	row := q.db.QueryRow(ctx, createLiveRole, arg.GuildID, arg.RoleID)
+func (q *Queries) CreateLiveRole(ctx context.Context, roleID int32) (Liverole, error) {
+	row := q.db.QueryRow(ctx, createLiveRole, roleID)
 	var i Liverole
-	err := row.Scan(&i.ID, &i.GuildID, &i.RoleID)
+	err := row.Scan(&i.ID, &i.RoleID)
 	return i, err
 }
 
@@ -35,19 +32,35 @@ func (q *Queries) DeleteLiveRoleByRoleID(ctx context.Context, roleID int32) erro
 }
 
 const getLiveRolesByGuildID = `-- name: GetLiveRolesByGuildID :many
-SELECT id, guild_id, role_id FROM liveroles WHERE guild_id = $1
+SELECT liveroles.id, role_id, roles.id, guild_id, discord_role_id FROM liveroles 
+LEFT JOIN roles ON liveroles.role_id = roles.id
+WHERE roles.guild_id = $1
 `
 
-func (q *Queries) GetLiveRolesByGuildID(ctx context.Context, guildID int32) ([]Liverole, error) {
+type GetLiveRolesByGuildIDRow struct {
+	ID            int32       `json:"id"`
+	RoleID        int32       `json:"role_id"`
+	ID_2          pgtype.Int4 `json:"id_2"`
+	GuildID       pgtype.Int4 `json:"guild_id"`
+	DiscordRoleID pgtype.Text `json:"discord_role_id"`
+}
+
+func (q *Queries) GetLiveRolesByGuildID(ctx context.Context, guildID int32) ([]GetLiveRolesByGuildIDRow, error) {
 	rows, err := q.db.Query(ctx, getLiveRolesByGuildID, guildID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Liverole
+	var items []GetLiveRolesByGuildIDRow
 	for rows.Next() {
-		var i Liverole
-		if err := rows.Scan(&i.ID, &i.GuildID, &i.RoleID); err != nil {
+		var i GetLiveRolesByGuildIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.RoleID,
+			&i.ID_2,
+			&i.GuildID,
+			&i.DiscordRoleID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

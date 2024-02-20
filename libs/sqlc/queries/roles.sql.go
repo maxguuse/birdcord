@@ -10,13 +10,18 @@ import (
 )
 
 const createRole = `-- name: CreateRole :one
-INSERT INTO roles (discord_role_id) VALUES ($1) RETURNING id, discord_role_id
+INSERT INTO roles (guild_id, discord_role_id) VALUES ($1, $2) RETURNING id, guild_id, discord_role_id
 `
 
-func (q *Queries) CreateRole(ctx context.Context, discordRoleID string) (Role, error) {
-	row := q.db.QueryRow(ctx, createRole, discordRoleID)
+type CreateRoleParams struct {
+	GuildID       int32  `json:"guild_id"`
+	DiscordRoleID string `json:"discord_role_id"`
+}
+
+func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error) {
+	row := q.db.QueryRow(ctx, createRole, arg.GuildID, arg.DiscordRoleID)
 	var i Role
-	err := row.Scan(&i.ID, &i.DiscordRoleID)
+	err := row.Scan(&i.ID, &i.GuildID, &i.DiscordRoleID)
 	return i, err
 }
 
@@ -39,23 +44,23 @@ func (q *Queries) DeleteRoleByID(ctx context.Context, id int32) error {
 }
 
 const getRoleByDiscordID = `-- name: GetRoleByDiscordID :one
-SELECT id, discord_role_id FROM roles WHERE discord_role_id = $1
+SELECT id, guild_id, discord_role_id FROM roles WHERE discord_role_id = $1
 `
 
 func (q *Queries) GetRoleByDiscordID(ctx context.Context, discordRoleID string) (Role, error) {
 	row := q.db.QueryRow(ctx, getRoleByDiscordID, discordRoleID)
 	var i Role
-	err := row.Scan(&i.ID, &i.DiscordRoleID)
+	err := row.Scan(&i.ID, &i.GuildID, &i.DiscordRoleID)
 	return i, err
 }
 
 const getRoleByID = `-- name: GetRoleByID :one
-SELECT id, discord_role_id FROM roles WHERE id = $1
+SELECT id, guild_id, discord_role_id FROM roles WHERE id = $1
 `
 
 func (q *Queries) GetRoleByID(ctx context.Context, id int32) (Role, error) {
 	row := q.db.QueryRow(ctx, getRoleByID, id)
 	var i Role
-	err := row.Scan(&i.ID, &i.DiscordRoleID)
+	err := row.Scan(&i.ID, &i.GuildID, &i.DiscordRoleID)
 	return i, err
 }

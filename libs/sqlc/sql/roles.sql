@@ -1,5 +1,5 @@
 -- name: CreateRole :one
-INSERT INTO roles (discord_role_id) VALUES ($1) RETURNING *;
+INSERT INTO roles (guild_id, discord_role_id) VALUES ($1, $2) RETURNING *;
 
 -- name: GetRoleByDiscordID :one
 SELECT * FROM roles WHERE discord_role_id = $1;

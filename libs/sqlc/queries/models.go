@@ -14,9 +14,8 @@ type Guild struct {
 }
 
 type Liverole struct {
-	ID      int32 `json:"id"`
-	GuildID int32 `json:"guild_id"`
-	RoleID  int32 `json:"role_id"`
+	ID     int32 `json:"id"`
+	RoleID int32 `json:"role_id"`
 }
 
 type Message struct {
@@ -55,6 +54,7 @@ type PollVote struct {
 
 type Role struct {
 	ID            int32  `json:"id"`
+	GuildID       int32  `json:"guild_id"`
 	DiscordRoleID string `json:"discord_role_id"`
 }
 
