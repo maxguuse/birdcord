@@ -52,6 +52,9 @@ func (l *liverolesRepository) CreateLiverole(
 			GuildID:       int32(guildID),
 			DiscordRoleID: discordRoleId,
 		})
+		if err != nil {
+			return err
+		}
 
 		liverole, err := q.CreateLiveRole(ctx, role.ID)
 		if err != nil {
