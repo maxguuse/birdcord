@@ -43,6 +43,20 @@ func (q *Queries) DeleteRoleByID(ctx context.Context, id int32) error {
 	return err
 }
 
+const deleteRolesByGuildID = `-- name: DeleteRolesByGuildID :exec
+DELETE FROM roles WHERE guild_id = $1 AND role_id IN (UNNEST($2::varchar[]))
+`
+
+type DeleteRolesByGuildIDParams struct {
+	GuildID        int32    `json:"guild_id"`
+	DiscordRoleIds []string `json:"discord_role_ids"`
+}
+
+func (q *Queries) DeleteRolesByGuildID(ctx context.Context, arg DeleteRolesByGuildIDParams) error {
+	_, err := q.db.Exec(ctx, deleteRolesByGuildID, arg.GuildID, arg.DiscordRoleIds)
+	return err
+}
+
 const getRoleByDiscordID = `-- name: GetRoleByDiscordID :one
 SELECT id, guild_id, discord_role_id FROM roles WHERE discord_role_id = $1
 `

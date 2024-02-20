@@ -21,7 +21,7 @@ type LiverolesRepository interface {
 	) ([]*domain.Liverole, error)
 	DeleteLiverole(
 		ctx context.Context,
-		guildID, roleID int,
+		roleID int,
 	) error
 	DeleteLiveroles(
 		ctx context.Context,
@@ -73,10 +73,18 @@ func (l *liverolesRepository) CreateLiverole(
 
 func (l *liverolesRepository) DeleteLiverole(
 	ctx context.Context,
-	guildID int,
 	roleID int,
 ) error {
-	panic("TODO: Implement")
+	err := l.q.Transaction(ctx, func(q *queries.Queries) error {
+		err := q.DeleteRoleByID(ctx, int32(roleID))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 func (l *liverolesRepository) DeleteLiveroles(
@@ -84,7 +92,19 @@ func (l *liverolesRepository) DeleteLiveroles(
 	guildID int,
 	discordRolesIds []string,
 ) error {
-	panic("TODO: Implement")
+	err := l.q.Transaction(ctx, func(q *queries.Queries) error {
+		err := q.DeleteRolesByGuildID(ctx, queries.DeleteRolesByGuildIDParams{
+			GuildID:        int32(guildID),
+			DiscordRoleIds: discordRolesIds,
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 func (l *liverolesRepository) GetLiveroles(
