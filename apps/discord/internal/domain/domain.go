@@ -63,6 +63,7 @@ type Guild struct {
 
 type Liverole struct {
 	ID            int
+	GuildID       int
 	RoleID        int
 	DiscordRoleID string
 }

@@ -5,6 +5,8 @@ import (
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	postgres "github.com/maxguuse/birdcord/libs/sqlc/db"
+	"github.com/maxguuse/birdcord/libs/sqlc/queries"
+	"github.com/samber/lo"
 )
 
 type LiverolesRepository interface {
@@ -43,7 +45,30 @@ func (l *liverolesRepository) CreateLiverole(
 	discordRoleId string,
 	guildID int,
 ) (*domain.Liverole, error) {
-	panic("TODO: Implement")
+	result := &domain.Liverole{}
+
+	err := l.q.Transaction(ctx, func(q *queries.Queries) error {
+		role, err := q.CreateRole(ctx, queries.CreateRoleParams{
+			GuildID:       int32(guildID),
+			DiscordRoleID: discordRoleId,
+		})
+
+		liverole, err := q.CreateLiveRole(ctx, role.ID)
+		if err != nil {
+			return err
+		}
+
+		result.ID = int(liverole.ID)
+		result.DiscordRoleID = role.DiscordRoleID
+		result.GuildID = int(role.GuildID)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, err
 }
 
 func (l *liverolesRepository) DeleteLiverole(
@@ -66,5 +91,28 @@ func (l *liverolesRepository) GetLiveroles(
 	ctx context.Context,
 	guildId int,
 ) ([]*domain.Liverole, error) {
-	panic("TODO: Implement")
+	result := make([]*domain.Liverole, 0)
+
+	err := l.q.Transaction(ctx, func(q *queries.Queries) error {
+		liveroles, err := q.GetLiveRolesByGuildID(ctx, int32(guildId))
+		if err != nil {
+			return err
+		}
+
+		result = lo.Map(liveroles, func(liverole queries.GetLiveRolesByGuildIDRow, _ int) *domain.Liverole {
+			return &domain.Liverole{
+				ID:            int(liverole.ID),
+				GuildID:       guildId,
+				RoleID:        int(liverole.RoleID),
+				DiscordRoleID: liverole.DiscordRoleID.String,
+			}
+		})
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
