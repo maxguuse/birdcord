@@ -7,10 +7,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func (h *Handler) removeOptionAutocomplete(
-	i *discordgo.Interaction,
-	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) {
+func (h *Handler) removeOptionAutocomplete(i *discordgo.Interaction, options optionsMap) {
 	data := i.ApplicationCommandData()
 
 	focusedOption, ok := lo.Find(data.Options[0].Options, func(o *discordgo.ApplicationCommandInteractionDataOption) bool {

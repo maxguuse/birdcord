@@ -8,10 +8,7 @@ import (
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 )
 
-func (h *Handler) startPoll(
-	i *discordgo.Interaction,
-	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) (string, error) {
+func (h *Handler) startPoll(i *discordgo.Interaction, options optionsMap) (string, error) {
 	ctx := context.Background()
 
 	optionsList, err := processPollOptions(options["options"].StringValue())

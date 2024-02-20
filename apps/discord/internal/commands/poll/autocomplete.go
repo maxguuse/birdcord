@@ -9,10 +9,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func (h *Handler) autocompletePollList(
-	i *discordgo.Interaction,
-	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) {
+func (h *Handler) autocompletePollList(i *discordgo.Interaction, options optionsMap) {
 	ctx := context.Background()
 
 	guild, err := h.Database.Guilds().GetGuildByDiscordID(ctx, i.GuildID)
@@ -56,10 +53,7 @@ func (h *Handler) autocompletePollList(
 	}
 }
 
-func (h *Handler) autocompleteOptionList(
-	i *discordgo.Interaction,
-	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) {
+func (h *Handler) autocompleteOptionList(i *discordgo.Interaction, options optionsMap) {
 	ctx := context.Background()
 
 	pollId := options["poll"].IntValue()

@@ -9,10 +9,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func (h *Handler) statusPoll(
-	i *discordgo.Interaction,
-	options map[string]*discordgo.ApplicationCommandInteractionDataOption,
-) (string, error) {
+func (h *Handler) statusPoll(i *discordgo.Interaction, options optionsMap) (string, error) {
 	ctx := context.Background()
 
 	pollId := options["poll"].IntValue()
