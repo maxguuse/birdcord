@@ -11,7 +11,6 @@ import (
 type Command interface {
 	GetRoutes() *disroute.Cmd
 	GetDiscordGo() *discordgo.ApplicationCommand
-	Autocomplete() (func(i *discordgo.Interaction), bool)
 }
 
 type Handler struct {
@@ -52,7 +51,7 @@ func (h *Handler) Register() error {
 	if err != nil {
 		return err
 	}
-	//TODO add autocompletion here or to disroute
+
 	_, err = h.Session.ApplicationCommandBulkOverwrite(h.Session.State.User.ID, "", discordgo)
 	if err != nil {
 		return err

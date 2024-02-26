@@ -44,7 +44,7 @@ func (c *Client) onAutocomplete(i *discordgo.InteractionCreate) {
 		slog.String("user", i.Member.User.Username),
 	)
 
-	c.Pubsub.Publish(i.ApplicationCommandData().Name+":autocomplete", i.Interaction)
+	c.CommandsHandler.Router.FindAndAutocomplete(i) //TODO handle error
 }
 
 func (c *Client) onMessageComponent(i *discordgo.InteractionCreate) {
