@@ -83,6 +83,6 @@ func (h *Handler) autocompleteOptionList(i *discordgo.Interaction, options optio
 			}),
 		},
 	})
-	
+
 	return "", err
 }

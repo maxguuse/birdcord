@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
+
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/config"
@@ -23,9 +24,10 @@ func NewSession(cfg *config.Config) (*discordgo.Session, error) {
 type Client struct {
 	*discordgo.Session
 
-	Cfg             *config.Config
-	Log             logger.Logger
-	Database        repository.DB
+	Cfg      *config.Config
+	Log      logger.Logger
+	Database repository.DB
+
 	CommandsHandler *modules.Handler
 }
 
