@@ -2,8 +2,10 @@ package poll
 
 import "github.com/bwmarrin/discordgo"
 
-func (h *Handler) GetDiscordGo() *discordgo.ApplicationCommand {
-	return command
+func (h *Handler) GetDiscordGo() []*discordgo.ApplicationCommand {
+	return []*discordgo.ApplicationCommand{
+		command,
+	}
 }
 
 var command = &discordgo.ApplicationCommand{

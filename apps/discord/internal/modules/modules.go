@@ -7,13 +7,14 @@ import (
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/liverole"
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll"
 	"github.com/maxguuse/disroute"
+	"github.com/samber/lo"
 	"go.uber.org/fx"
 )
 
 type Module interface {
-	GetRoutes() *disroute.Cmd
-	GetDiscordGo() *discordgo.ApplicationCommand
-	GetComponents() *disroute.Component
+	GetRoutes() []*disroute.Cmd
+	GetDiscordGo() []*discordgo.ApplicationCommand
+	GetComponents() []*disroute.Component
 }
 
 type Handler struct {
@@ -48,13 +49,9 @@ func (h *Handler) Register() error {
 	discordgo := make([]*discordgo.ApplicationCommand, 0, len(h.Modules))
 	components := make([]*disroute.Component, 0, len(h.Modules))
 	for _, cmd := range h.Modules {
-		routes = append(routes, cmd.GetRoutes())
-		discordgo = append(discordgo, cmd.GetDiscordGo())
-		tCmp := cmd.GetComponents()
-		if tCmp.Key == "" || tCmp.Handler == nil {
-			continue
-		}
-		components = append(components, cmd.GetComponents())
+		routes = append(routes, cmd.GetRoutes()...)
+		discordgo = append(discordgo, cmd.GetDiscordGo()...)
+		components = append(components, cmd.GetComponents()...)
 	}
 
 	err := h.Router.RegisterAll(routes)
@@ -62,7 +59,10 @@ func (h *Handler) Register() error {
 		return err
 	}
 
-	err = h.Router.RegisterComponents(components)
+	filteredCmps := lo.Filter(components, func(cmp *disroute.Component, _ int) bool {
+		return cmp.Key != "" && cmp.Handler != nil
+	})
+	err = h.Router.RegisterComponents(filteredCmps)
 	if err != nil {
 		return err
 	}
