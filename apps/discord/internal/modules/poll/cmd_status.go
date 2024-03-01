@@ -6,7 +6,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
-	"github.com/samber/lo"
 )
 
 func (h *Handler) statusPoll(i *discordgo.Interaction, options optionsMap) (string, error) {
@@ -27,9 +26,7 @@ func (h *Handler) statusPoll(i *discordgo.Interaction, options optionsMap) (stri
 		return "", ErrNotFound
 	}
 
-	err = h.sendPollMessage(ctx, i, poll, lo.Map(poll.Options, func(option domain.PollOption, _ int) string {
-		return option.Title
-	}))
+	err = h.sendPollMessage(ctx, i, poll)
 	if err != nil {
 		return "", errors.Join(domain.ErrInternal, err)
 	}

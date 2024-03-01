@@ -5,11 +5,10 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/discord/internal/commands"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
-	"github.com/maxguuse/birdcord/libs/pubsub"
 	"go.uber.org/fx"
 )
 
@@ -27,20 +26,19 @@ type Client struct {
 	Cfg             *config.Config
 	Log             logger.Logger
 	Database        repository.DB
-	Pubsub          pubsub.PubSub
-	CommandsHandler *commands.Handler
+	CommandsHandler *modules.Handler
 }
 
 type ClientOpts struct {
 	fx.In
 	LC fx.Lifecycle
 
-	Log             logger.Logger
-	Database        repository.DB
-	Pubsub          pubsub.PubSub
-	Cfg             *config.Config
+	Log      logger.Logger
+	Database repository.DB
+	Cfg      *config.Config
+
 	Session         *discordgo.Session
-	CommandsHandler *commands.Handler
+	CommandsHandler *modules.Handler
 }
 
 func New(opts ClientOpts) *Client {
@@ -48,7 +46,6 @@ func New(opts ClientOpts) *Client {
 		Cfg:             opts.Cfg,
 		Log:             opts.Log,
 		Database:        opts.Database,
-		Pubsub:          opts.Pubsub,
 		Session:         opts.Session,
 		CommandsHandler: opts.CommandsHandler,
 	}

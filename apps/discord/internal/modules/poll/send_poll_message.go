@@ -15,7 +15,6 @@ func (h *Handler) sendPollMessage(
 	ctx context.Context,
 	i *discordgo.Interaction,
 	poll *domain.PollWithDetails,
-	optionsList []string,
 ) error {
 	actionRows := h.buildActionRows(poll, i.ID)
 	pollEmbed := buildPollEmbed(poll, i.Member.User)
@@ -86,16 +85,12 @@ func (h *Handler) buildActionRows(
 ) []discordgo.MessageComponent {
 	buttons := make([]discordgo.MessageComponent, 0, len(poll.Options))
 	for _, option := range poll.Options {
-		customId := fmt.Sprintf("poll_%d_option_%d_i_%s", poll.ID, option.ID, interactionID)
+		customId := fmt.Sprintf("poll-vote-btn:poll_%d_option_%d_i_%s", poll.ID, option.ID, interactionID)
 		buttons = append(buttons, discordgo.Button{
 			Label:    option.Title,
 			Style:    discordgo.PrimaryButton,
 			CustomID: customId,
 		})
-
-		_ = h.Pubsub.Subscribe(customId, h.BuildVoteButtonHandler(
-			int32(poll.ID), int32(option.ID),
-		))
 	}
 	buttonsGroups := lo.Chunk(buttons, 5)
 	actionRows := lo.Map(buttonsGroups, func(buttons []discordgo.MessageComponent, _ int) discordgo.MessageComponent {
