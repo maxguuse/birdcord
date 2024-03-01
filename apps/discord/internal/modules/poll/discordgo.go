@@ -1,112 +1,15 @@
 package poll
 
-import (
-	"log/slog"
+import "github.com/bwmarrin/discordgo"
 
-	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
-	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
-	"github.com/maxguuse/birdcord/libs/logger"
-	"github.com/maxguuse/birdcord/libs/pubsub"
-	"go.uber.org/fx"
-)
-
-var NewFx = fx.Options(
-	fx.Provide(
-		NewHandler,
-	),
-)
-
-const (
-	SubcommandStart        = "start"
-	SubcommandStop         = "stop"
-	SubcommandStatus       = "status"
-	SubcommandAddOption    = "add-option"
-	SubcommandRemoveOption = "remove-option"
-)
-
-type optionsMap = map[string]*discordgo.ApplicationCommandInteractionDataOption
-
-type Handler struct {
-	Log      logger.Logger
-	Database repository.DB
-	Pubsub   pubsub.PubSub
-	Session  *discordgo.Session
-
-	subcommandsHandlers map[string]func(*discordgo.Interaction, optionsMap) (string, error)
-}
-
-type HandlerOpts struct {
-	fx.In
-
-	Log      logger.Logger
-	Database repository.DB
-	Pubsub   pubsub.PubSub
-	Session  *discordgo.Session
-}
-
-func NewHandler(opts HandlerOpts) *Handler {
-	h := &Handler{
-		Log:      opts.Log,
-		Database: opts.Database,
-		Pubsub:   opts.Pubsub,
-		Session:  opts.Session,
+func (h *Handler) GetDiscordGo() []*discordgo.ApplicationCommand {
+	return []*discordgo.ApplicationCommand{
+		command,
 	}
-
-	h.subcommandsHandlers = map[string]func(*discordgo.Interaction, optionsMap) (string, error){
-		SubcommandStart:        h.startPoll,
-		SubcommandStop:         h.stopPoll,
-		SubcommandStatus:       h.statusPoll,
-		SubcommandAddOption:    h.addPollOption,
-		SubcommandRemoveOption: h.removePollOption,
-	}
-
-	return h
-}
-
-func (h *Handler) Command() *discordgo.ApplicationCommand {
-	return command
-}
-
-func (h *Handler) Callback() func(i *discordgo.Interaction) {
-	return func(i *discordgo.Interaction) {
-		commandOptions := helpers.BuildOptionsMap(i)
-
-		sh := h.subcommandsHandlers[i.ApplicationCommandData().Options[0].Name]
-		if sh == nil {
-			return
-		}
-
-		res, err := sh(i, commandOptions)
-		err = helpers.InteractionResponseProcess(h.Session, i, res, err)
-		if err != nil {
-			h.Log.Error("error processing interaction", slog.String("error", err.Error()))
-		}
-	}
-}
-
-func (h *Handler) Autocomplete() (func(i *discordgo.Interaction), bool) {
-	return func(i *discordgo.Interaction) {
-		data := i.ApplicationCommandData()
-		h.Log.Debug("data", slog.Any("data", data))
-
-		commandOptions := helpers.BuildOptionsMap(i)
-
-		switch i.ApplicationCommandData().Options[0].Name {
-		case SubcommandStop:
-			h.autocompletePollList(i, commandOptions)
-		case SubcommandStatus:
-			h.autocompletePollList(i, commandOptions)
-		case SubcommandAddOption:
-			h.autocompletePollList(i, commandOptions)
-		case SubcommandRemoveOption:
-			h.removeOptionAutocomplete(i, commandOptions)
-		}
-	}, true
 }
 
 var command = &discordgo.ApplicationCommand{
-	Name:        "poll",
+	Name:        CommandPoll,
 	Description: "Управление опросами",
 	Options: []*discordgo.ApplicationCommandOption{
 		{

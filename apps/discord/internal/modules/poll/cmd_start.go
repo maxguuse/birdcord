@@ -37,7 +37,7 @@ func (h *Handler) startPoll(i *discordgo.Interaction, options optionsMap) (strin
 		return "", errors.Join(domain.ErrInternal, err)
 	}
 
-	err = h.sendPollMessage(ctx, i, poll, optionsList)
+	err = h.sendPollMessage(ctx, i, poll)
 	if err != nil {
 		return "", errors.Join(domain.ErrInternal, err)
 	}

@@ -9,22 +9,22 @@ import (
 	"github.com/samber/lo"
 )
 
-func (h *Handler) autocompletePollList(i *discordgo.Interaction, options optionsMap) {
+func (h *Handler) autocompletePollList(i *discordgo.Interaction, options optionsMap) (string, error) {
 	ctx := context.Background()
 
 	guild, err := h.Database.Guilds().GetGuildByDiscordID(ctx, i.GuildID)
 	if err != nil {
-		return
+		return "", err
 	}
 
 	user, err := h.Database.Users().GetUserByDiscordID(ctx, i.Member.User.ID)
 	if err != nil {
-		return
+		return "", err
 	}
 
 	polls, err := h.Database.Polls().GetActivePolls(ctx, guild.ID, user.ID)
 	if err != nil {
-		return
+		return "", err
 	}
 
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(polls))
@@ -48,19 +48,18 @@ func (h *Handler) autocompletePollList(i *discordgo.Interaction, options options
 			}),
 		},
 	})
-	if err != nil {
-		return
-	}
+
+	return "", err
 }
 
-func (h *Handler) autocompleteOptionList(i *discordgo.Interaction, options optionsMap) {
+func (h *Handler) autocompleteOptionList(i *discordgo.Interaction, options optionsMap) (string, error) {
 	ctx := context.Background()
 
 	pollId := options["poll"].IntValue()
 
 	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
 	if err != nil {
-		return
+		return "", err
 	}
 
 	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(poll.Options))
@@ -84,7 +83,6 @@ func (h *Handler) autocompleteOptionList(i *discordgo.Interaction, options optio
 			}),
 		},
 	})
-	if err != nil {
-		return
-	}
+
+	return "", err
 }
