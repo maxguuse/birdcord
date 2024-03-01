@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/discord/internal/commands"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
@@ -26,7 +26,7 @@ type Client struct {
 	Cfg             *config.Config
 	Log             logger.Logger
 	Database        repository.DB
-	CommandsHandler *commands.Handler
+	CommandsHandler *modules.Handler
 }
 
 type ClientOpts struct {
@@ -38,7 +38,7 @@ type ClientOpts struct {
 	Cfg      *config.Config
 
 	Session         *discordgo.Session
-	CommandsHandler *commands.Handler
+	CommandsHandler *modules.Handler
 }
 
 func New(opts ClientOpts) *Client {

@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/maxguuse/birdcord/apps/discord/internal/client"
-	"github.com/maxguuse/birdcord/apps/discord/internal/commands"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
@@ -18,7 +18,7 @@ func main() {
 		),
 
 		repository.NewFx,
-		commands.NewFx,
+		modules.NewFx,
 
 		client.NewFx,
 	).Run()

@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/discord/internal/commands/helpers"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules/helpers"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/logger"
 	"go.uber.org/fx"

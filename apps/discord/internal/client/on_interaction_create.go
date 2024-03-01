@@ -65,5 +65,5 @@ func (c *Client) onMessageComponent(i *discordgo.InteractionCreate) {
 		return
 	}
 
-	c.Pubsub.Publish(i.MessageComponentData().CustomID, i.Interaction)
+	c.CommandsHandler.Router.FindComponentAndExecute(i) //TODO handle error
 }
