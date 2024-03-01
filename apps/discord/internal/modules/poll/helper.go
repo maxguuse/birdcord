@@ -1,7 +1,6 @@
 package poll
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -30,11 +29,11 @@ func buildPollEmbed(
 	})
 
 	optionsPercentageBars := lo.Map(poll.Options, func(option domain.PollOption, i int) string {
-		votesForOption := lo.Filter(poll.Votes, func(vote domain.PollVote, _ int) bool {
+		votesForOption := lo.CountBy(poll.Votes, func(vote domain.PollVote) bool {
 			return vote.OptionID == option.ID
 		})
 
-		percentage := (float64(len(votesForOption)) / float64(totalVotes)) * 100
+		percentage := (float64(votesForOption) / float64(totalVotes)) * 100
 		if math.IsNaN(percentage) {
 			percentage = 0
 		}
@@ -82,18 +81,16 @@ func buildPollEmbed(
 func processPollOptions(rawOptions string) ([]string, error) {
 	optionsList := strings.Split(rawOptions, "|")
 	if len(optionsList) < 2 || len(optionsList) > 25 {
-		return nil, errors.Join(
-			domain.ErrUserSide,
-			domain.ErrWrongPollOptionsAmount,
-		)
+		return nil, &domain.UsersideError{
+			Msg: "Количество вариантов опроса должно быть от 2 до 25 включительно.",
+		}
 	}
 	if lo.SomeBy(optionsList, func(o string) bool {
 		return utf8.RuneCountInString(o) > 50 || utf8.RuneCountInString(o) < 1
 	}) {
-		return nil, errors.Join(
-			domain.ErrUserSide,
-			domain.ErrWrongPollOptionLength,
-		)
+		return nil, &domain.UsersideError{
+			Msg: "Длина варианта опроса не может быть больше 50 или меньше 1 символа.",
+		}
 	}
 
 	return optionsList, nil

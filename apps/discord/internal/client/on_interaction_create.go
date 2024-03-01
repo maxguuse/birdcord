@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules/helpers"
 )
 
 func (c *Client) onInteractionCreate(_ *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -35,7 +36,11 @@ func (c *Client) onCommand(i *discordgo.InteractionCreate) {
 		return
 	}
 
-	c.Pubsub.Publish(i.ApplicationCommandData().Name+":command", i.Interaction)
+	res, err := c.CommandsHandler.Router.FindAndExecute(i)
+	err = helpers.InteractionResponseProcess(c.Session, i.Interaction, res, err)
+	if err != nil {
+		c.Log.Error("error processing interaction response", err)
+	}
 }
 
 func (c *Client) onAutocomplete(i *discordgo.InteractionCreate) {
@@ -44,7 +49,12 @@ func (c *Client) onAutocomplete(i *discordgo.InteractionCreate) {
 		slog.String("user", i.Member.User.Username),
 	)
 
-	c.Pubsub.Publish(i.ApplicationCommandData().Name+":autocomplete", i.Interaction)
+	_, err := c.CommandsHandler.Router.FindAndAutocomplete(i)
+	if err != nil {
+		c.Log.Error("error executing autocomplete", err)
+
+		return
+	}
 }
 
 func (c *Client) onMessageComponent(i *discordgo.InteractionCreate) {
@@ -65,5 +75,9 @@ func (c *Client) onMessageComponent(i *discordgo.InteractionCreate) {
 		return
 	}
 
-	c.Pubsub.Publish(i.MessageComponentData().CustomID, i.Interaction)
+	res, err := c.CommandsHandler.Router.FindComponentAndExecute(i)
+	err = helpers.InteractionResponseProcess(c.Session, i.Interaction, res, err)
+	if err != nil {
+		c.Log.Error("error processing interaction response", err)
+	}
 }
