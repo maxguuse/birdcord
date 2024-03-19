@@ -50,7 +50,13 @@ func (h *Handler) updatePollMessages(data *UpdatePollMessageData) error {
 	actionRows := lo.
 		If(data.stop, make([]discordgo.MessageComponent, 0)).
 		Else(h.buildActionRows(data.poll, data.interaction.ID))
-	pollEmbed := buildPollEmbed(data.poll, data.interaction.Member.User)
+
+	author, err := h.Session.User(data.poll.Author.DiscordUserID)
+	if err != nil {
+		return err
+	}
+
+	pollEmbed := buildPollEmbed(data.poll, author)
 
 	if len(data.fields) > 0 {
 		pollEmbed[0].Fields = append(pollEmbed[0].Fields, data.fields...)
