@@ -2,7 +2,6 @@ package poll
 
 import (
 	"errors"
-	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/samber/lo"
@@ -17,8 +16,6 @@ func (h *Handler) removeOptionAutocomplete(i *discordgo.Interaction, options opt
 	if !ok {
 		return "", errors.New("there's no focused option")
 	}
-
-	h.Log.Debug("focused option", slog.Any("option", focusedOption))
 
 	var err error
 	switch focusedOption.Name {
