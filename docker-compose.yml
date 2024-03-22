@@ -12,7 +12,7 @@ services:
     volumes:
       - pg-data:/var/lib/postgresql/data
   migrations:
-    image: maxguuse/birdcord:migrations-latest
+    image: maxgus/birdcord:migrations-latest
     environment:
       - ENVIRONMENT=${ENVIRONMENT}
       - CONNECTION_STRING=${CONNECTION_STRING}
@@ -21,7 +21,7 @@ services:
         condition: on-failure
         max_attempts: 15
   discord:
-    image: maxguuse/birdcord:discord-latest
+    image: maxgus/birdcord:discord-latest
     environment:
       - ENVIRONMENT=${ENVIRONMENT}
       - DISCORD_TOKEN=${DISCORD_TOKEN}

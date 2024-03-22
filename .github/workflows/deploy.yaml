@@ -3,7 +3,7 @@ name: Deploy
 on:
   workflow_run:
     workflows: ["Build"]
-    branches: ["master"]
+    branches: [master]
     types: 
       - completed
   workflow_dispatch:
