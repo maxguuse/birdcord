@@ -40,7 +40,7 @@ jobs:
           target: "~/.deploy/${{ github.event.repository.name }}"
 
       - name: Deploy
-        uses: appleboy/ssh-action@v0.1.10
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USERNAME }}
