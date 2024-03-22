@@ -10,4 +10,8 @@ var (
 	ErrNotFound = &domain.UsersideError{
 		Msg: "Опроса не существует.",
 	}
+
+	ErrOptionHasVotes = &domain.UsersideError{
+		Msg: "Невозможно удалить вариант опроса за который кто-то проголосовал.",
+	}
 )

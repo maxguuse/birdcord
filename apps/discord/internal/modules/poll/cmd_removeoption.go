@@ -28,6 +28,14 @@ func (h *Handler) removePollOption(i *discordgo.Interaction, options optionsMap)
 		return "", ErrNotFound
 	}
 
+	optionVotes := lo.CountBy(poll.Votes, func(v domain.PollVote) bool {
+		return v.OptionID == int(optionId)
+	})
+
+	if optionVotes > 0 {
+		return "", ErrOptionHasVotes
+	}
+
 	err = h.Database.Polls().RemovePollOption(ctx, int(optionId))
 	if err != nil {
 		return "", errors.Join(domain.ErrInternal, err)
