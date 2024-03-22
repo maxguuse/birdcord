@@ -4,7 +4,8 @@ on:
   workflow_run:
     workflows: ["Build"]
     branches: ["master"]
-    types: ["completed"]
+    types: 
+      - completed
   workflow_dispatch:
     inputs:
       version:
