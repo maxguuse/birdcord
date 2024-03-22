@@ -26,6 +26,10 @@ func (h *Handler) addPollOption(i *discordgo.Interaction, options optionsMap) (s
 		return "", ErrNotFound
 	}
 
+	if len(poll.Options) == 25 {
+		return "", ErrTooManyOptions
+	}
+
 	newOption, err := h.Database.Polls().AddPollOption(ctx, int(pollId), options["option"].StringValue())
 	if err != nil {
 		return "", errors.Join(domain.ErrInternal, err)

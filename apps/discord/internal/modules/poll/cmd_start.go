@@ -13,7 +13,7 @@ func (h *Handler) startPoll(i *discordgo.Interaction, options optionsMap) (strin
 
 	optionsList, err := processPollOptions(options["options"].StringValue())
 	if err != nil {
-		return "", err //TODO replace
+		return "", err
 	}
 
 	guild, err := h.Database.Guilds().GetGuildByDiscordID(ctx, i.GuildID)
