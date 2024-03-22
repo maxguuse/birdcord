@@ -14,4 +14,8 @@ var (
 	ErrOptionHasVotes = &domain.UsersideError{
 		Msg: "Невозможно удалить вариант опроса за который кто-то проголосовал.",
 	}
+
+	ErrTooFewOptions = &domain.UsersideError{
+		Msg: "В опросе не может быть менее 2х вариантов.",
+	}
 )
