@@ -1,8 +1,9 @@
 FROM golang:1.21.5-alpine as builder
 WORKDIR /app
 RUN apk add upx
-COPY . .
+COPY go.* ./
 RUN go work sync
+COPY . .
 
 FROM builder as discord_builder
 RUN cd apps/discord && \
