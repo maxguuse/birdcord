@@ -2,8 +2,8 @@ name: Deploy
 
 on:
   workflow_run:
-    workflows: ["Build"]
-    branches: [master]
+    workflows: 
+      - Build
     types: 
       - completed
   workflow_dispatch:
