@@ -2,6 +2,7 @@ package poll
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -55,7 +56,12 @@ func (h *Handler) autocompletePollList(i *discordgo.Interaction, options options
 func (h *Handler) autocompleteOptionList(i *discordgo.Interaction, options optionsMap) (string, error) {
 	ctx := context.Background()
 
-	pollId := options["poll"].IntValue()
+	rawPollId, ok := options["poll"]
+	if !ok {
+		return "", errors.New("there's no focused option")
+	}
+
+	pollId := rawPollId.IntValue()
 
 	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
 	if err != nil {

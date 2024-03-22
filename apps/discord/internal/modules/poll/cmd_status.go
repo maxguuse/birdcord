@@ -6,6 +6,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
+	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 )
 
 func (h *Handler) statusPoll(i *discordgo.Interaction, options optionsMap) (string, error) {
@@ -13,7 +14,11 @@ func (h *Handler) statusPoll(i *discordgo.Interaction, options optionsMap) (stri
 
 	pollId := options["poll"].IntValue()
 
+	var repoErr *repository.NotFoundError
 	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
+	if errors.As(err, &repoErr) {
+		return "", ErrNotFound
+	}
 	if err != nil {
 		return "", errors.Join(domain.ErrInternal, err)
 	}
