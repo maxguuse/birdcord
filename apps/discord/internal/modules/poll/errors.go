@@ -18,4 +18,8 @@ var (
 	ErrTooFewOptions = &domain.UsersideError{
 		Msg: "В опросе не может быть менее 2х вариантов.",
 	}
+
+	ErrTooManyOptions = &domain.UsersideError{
+		Msg: "В опросе не может быть более 25 вариантов.",
+	}
 )
