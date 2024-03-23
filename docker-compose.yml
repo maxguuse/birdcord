@@ -5,10 +5,8 @@ services:
     image: postgres:15-alpine
     ports:
       - "5432:5432"
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+    env_file:
+      - .env
     volumes:
       - pg-data:/var/lib/postgresql/data
   migrations:
@@ -22,11 +20,8 @@ services:
         max_attempts: 15
   discord:
     image: maxgus/birdcord:discord-latest
-    environment:
-      - ENVIRONMENT=${ENVIRONMENT}
-      - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - DISCORD_ID=${DISCORD_ID}
-      - CONNECTION_STRING=${CONNECTION_STRING}
+    env_file:
+      - .env
     deploy:
       restart_policy:
         condition: on-failure
