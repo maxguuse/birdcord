@@ -21,7 +21,7 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 
 	customStatus := lo.If(
 		c.Cfg.Environment == "prod",
-		"Released",
+		"Release "+c.Cfg.Version,
 	).Else("Смотрит как Гусь кодит 💻")
 
 	if err := c.UpdateStatusComplex(discordgo.UpdateStatusData{

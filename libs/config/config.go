@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	Environment string `env:"ENVIRONMENT"`
+	Version     string `env:"VERSION"`
 
 	DiscordToken string `env:"DISCORD_TOKEN"`
 	DiscordId    string `env:"DISCORD_ID"`
