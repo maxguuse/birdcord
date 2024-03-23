@@ -1,6 +1,9 @@
 package liverole
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo"
+)
 
 func (h *Handler) GetDiscordGo() []*discordgo.ApplicationCommand {
 	return []*discordgo.ApplicationCommand{
@@ -9,8 +12,9 @@ func (h *Handler) GetDiscordGo() []*discordgo.ApplicationCommand {
 }
 
 var command = &discordgo.ApplicationCommand{
-	Name:        "liverole",
-	Description: "Управление live-ролями",
+	Name:         "liverole",
+	Description:  "Управление live-ролями",
+	DMPermission: lo.ToPtr(false),
 	Options: []*discordgo.ApplicationCommandOption{
 		{
 			Name:        SubcommandAdd,
