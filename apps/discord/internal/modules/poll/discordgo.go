@@ -1,6 +1,9 @@
 package poll
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/bwmarrin/discordgo"
+	"github.com/samber/lo"
+)
 
 func (h *Handler) GetDiscordGo() []*discordgo.ApplicationCommand {
 	return []*discordgo.ApplicationCommand{
@@ -9,8 +12,9 @@ func (h *Handler) GetDiscordGo() []*discordgo.ApplicationCommand {
 }
 
 var command = &discordgo.ApplicationCommand{
-	Name:        CommandPoll,
-	Description: "Управление опросами",
+	Name:         CommandPoll,
+	Description:  "Управление опросами",
+	DMPermission: lo.ToPtr(false),
 	Options: []*discordgo.ApplicationCommandOption{
 		{
 			Name:        SubcommandStart,
