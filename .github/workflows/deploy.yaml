@@ -21,9 +21,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get latest tag
+        uses: maxguuse/action-get-latest-tag@v1
+        id: latest-tag
+
       - name: Write .env
         run: |
           echo "ENVIRONMENT=${{ secrets.ENVIRONMENT }}" >> .env
+          echo "VERSION=${{ steps.latest-tag.outputs.tag }}" >> .env
           echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" >> .env
           echo "DISCORD_ID=${{ secrets.DISCORD_ID }}" >> .env
           echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env
