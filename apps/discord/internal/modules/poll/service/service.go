@@ -162,6 +162,58 @@ func (s *Service) AddOption(ctx context.Context, r *AddOptionRequest) (*domain.P
 	return poll, nil
 }
 
+type RemoveOptionRequest struct {
+	GuildID  string
+	UserID   string
+	PollID   int64
+	OptionID int64
+}
+
+func (s *Service) RemoveOption(ctx context.Context, r *RemoveOptionRequest) (*domain.PollWithDetails, error) {
+	pollId := r.PollID
+	optionId := r.OptionID
+
+	var repoErr *repository.NotFoundError
+	poll, err := s.db.Polls().GetPollWithDetails(ctx, int(pollId))
+	if errors.As(err, &repoErr) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	if poll.Author.DiscordUserID != r.UserID {
+		return nil, ErrNotAuthor
+	}
+
+	if poll.Guild.DiscordGuildID != r.GuildID {
+		return nil, ErrNotFound
+	}
+
+	optionVotes := lo.CountBy(poll.Votes, func(v domain.PollVote) bool {
+		return v.OptionID == int(optionId)
+	})
+
+	if optionVotes > 0 {
+		return nil, ErrOptionHasVotes
+	}
+
+	if len(poll.Options) <= 2 {
+		return nil, ErrTooFewOptions
+	}
+
+	err = s.db.Polls().RemovePollOption(ctx, int(optionId))
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	poll.Options = lo.Filter(poll.Options, func(o domain.PollOption, _ int) bool {
+		return o.ID != int(optionId)
+	})
+
+	return poll, nil
+}
+
 func processPollOptions(rawOptions string) ([]string, error) {
 	optionsList := strings.Split(rawOptions, "|")
 	if len(optionsList) < 2 || len(optionsList) > 25 {
