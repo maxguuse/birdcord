@@ -7,68 +7,33 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
-	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
-	"github.com/samber/lo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/service"
 )
 
 func (h *Handler) stopPoll(i *discordgo.Interaction, options optionsMap) (string, error) {
 	ctx := context.Background()
 
-	optionsWithVotes := make(map[domain.PollOption]int)
-
-	pollId := options["poll"].IntValue()
-
-	var repoErr *repository.NotFoundError
-	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
-	if errors.As(err, &repoErr) {
-		return "", ErrNotFound
-	}
-	if err != nil {
-		return "", errors.Join(domain.ErrInternal, err)
-	}
-
-	if poll.Author.DiscordUserID != i.Member.User.ID {
-		return "", ErrNotAuthor
-	}
-
-	if poll.Guild.DiscordGuildID != i.GuildID {
-		return "", ErrNotFound
-	}
-
-	var maxVotes int = 0
-	for _, option := range poll.Options {
-		optionVotes := lo.CountBy(poll.Votes, func(v domain.PollVote) bool {
-			return v.OptionID == option.ID
-		})
-
-		optionsWithVotes[option] = optionVotes
-
-		if optionVotes > maxVotes {
-			maxVotes = optionVotes
-		}
-	}
-
-	winners := lo.FilterMap(poll.Options, func(o domain.PollOption, _ int) (string, bool) {
-		return o.Title, optionsWithVotes[o] == maxVotes
+	res, err := h.service.Stop(ctx, &service.StopRequest{
+		GuildID: i.GuildID,
+		UserID:  i.Member.User.ID,
+		PollID:  options["poll"].IntValue(),
 	})
+	if err != nil {
+		return "", err
+	}
 
 	err = h.updatePollMessages(&UpdatePollMessageData{
-		poll:        poll,
+		poll:        res.Poll,
 		interaction: i,
 		stop:        true,
 		fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Победители",
-				Value:  strings.Join(winners, ","),
+				Value:  strings.Join(res.Winners, ","),
 				Inline: true,
 			},
 		},
 	})
-	if err != nil {
-		return "", errors.Join(domain.ErrInternal, err)
-	}
-
-	err = h.Database.Polls().UpdatePollStatus(ctx, int(pollId), false)
 	if err != nil {
 		return "", errors.Join(domain.ErrInternal, err)
 	}

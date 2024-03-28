@@ -62,6 +62,65 @@ func (s *Service) Create(ctx context.Context, r *CreateRequest) (*domain.PollWit
 	return poll, nil
 }
 
+type StopRequest struct {
+	GuildID string
+	UserID  string
+	PollID  int64
+}
+
+type StopResponse struct {
+	Poll    *domain.PollWithDetails
+	Winners []string
+}
+
+func (s *Service) Stop(ctx context.Context, r *StopRequest) (*StopResponse, error) {
+	optionsWithVotes := make(map[domain.PollOption]int)
+
+	var repoErr *repository.NotFoundError
+	poll, err := s.db.Polls().GetPollWithDetails(ctx, int(r.PollID)) // Pass Guild ID as well
+	if errors.As(err, &repoErr) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	if poll.Author.DiscordUserID != r.UserID {
+		return nil, ErrNotAuthor
+	}
+
+	if poll.Guild.DiscordGuildID != r.GuildID {
+		return nil, ErrNotFound
+	}
+
+	var maxVotes int = 0
+	for _, option := range poll.Options {
+		optionVotes := lo.CountBy(poll.Votes, func(v domain.PollVote) bool {
+			return v.OptionID == option.ID
+		})
+
+		optionsWithVotes[option] = optionVotes
+
+		if optionVotes > maxVotes {
+			maxVotes = optionVotes
+		}
+	}
+
+	winners := lo.FilterMap(poll.Options, func(o domain.PollOption, _ int) (string, bool) {
+		return o.Title, optionsWithVotes[o] == maxVotes
+	})
+
+	err = s.db.Polls().UpdatePollStatus(ctx, int(r.PollID), false)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	return &StopResponse{
+		Poll:    poll,
+		Winners: winners,
+	}, nil
+}
+
 func processPollOptions(rawOptions string) ([]string, error) {
 	optionsList := strings.Split(rawOptions, "|")
 	if len(optionsList) < 2 || len(optionsList) > 25 {
