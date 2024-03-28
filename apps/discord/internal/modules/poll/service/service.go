@@ -231,3 +231,11 @@ func (s *Service) AddVote(ctx context.Context, r *AddVoteRequest) (*domain.PollW
 
 	return poll, nil
 }
+
+func (s *Service) CreateMessage(ctx context.Context, r *CreateMessageRequest) error {
+	_, err := s.db.Polls().CreatePollMessage(
+		ctx, r.Message.ID, r.Message.ChannelID, r.PollID,
+	)
+
+	return err
+}

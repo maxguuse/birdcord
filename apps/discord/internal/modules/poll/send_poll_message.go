@@ -7,6 +7,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/service"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 )
@@ -27,13 +28,16 @@ func (h *Handler) sendPollMessage(
 		return err
 	}
 
-	_, err = h.Database.Polls().CreatePollMessage(
-		ctx, msg.ID, msg.ChannelID, poll.ID,
-	)
-	if err != nil {
-		deleteErr := h.Session.ChannelMessageDelete(i.ChannelID, msg.ID)
+	err = h.service.CreateMessage(ctx, &service.CreateMessageRequest{
+		PollID: poll.ID,
+		Message: service.Message{
+			ID:        msg.ID,
+			ChannelID: i.ChannelID,
+		},
+	})
 
-		return errors.Join(deleteErr, err)
+	if err != nil {
+		return errors.Join(h.Session.ChannelMessageDelete(i.ChannelID, msg.ID), err)
 	}
 
 	return nil

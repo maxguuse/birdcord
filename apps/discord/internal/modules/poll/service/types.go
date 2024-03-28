@@ -53,3 +53,13 @@ type AddVoteRequest struct {
 	UserID   string
 	CustomID string
 }
+
+type CreateMessageRequest struct {
+	PollID  int
+	Message Message
+}
+
+type Message struct {
+	ID        string
+	ChannelID string
+}
