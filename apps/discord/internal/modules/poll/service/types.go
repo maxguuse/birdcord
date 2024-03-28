@@ -48,3 +48,8 @@ type RemoveOptionRequest struct {
 	PollID   int64
 	OptionID int64
 }
+
+type AddVoteRequest struct {
+	UserID   string
+	CustomID string
+}

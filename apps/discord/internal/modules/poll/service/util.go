@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -36,4 +38,38 @@ func validatePollAuthor(poll *domain.PollWithDetails, userId string, guildId str
 	}
 
 	return nil
+}
+
+type voteData struct {
+	PollId   int
+	OptionId int
+}
+
+func parseVoteData(customId string) (*voteData, error) {
+	parts := strings.Split(customId, ":")
+	if len(parts) != 2 {
+		return nil, errors.New("invalid custom id")
+	}
+
+	blob := parts[1]
+
+	parts = strings.Split(blob, "_")
+	if len(parts) != 6 {
+		return nil, errors.New("invalid custom id")
+	}
+
+	poll_id, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return nil, err
+	}
+
+	option_id, err := strconv.Atoi(parts[3])
+	if err != nil {
+		return nil, err
+	}
+
+	return &voteData{
+		PollId:   poll_id,
+		OptionId: option_id,
+	}, nil
 }

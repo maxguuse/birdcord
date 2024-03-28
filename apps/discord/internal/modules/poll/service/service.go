@@ -199,3 +199,35 @@ func (s *Service) RemoveOption(ctx context.Context, r *RemoveOptionRequest) (*do
 
 	return poll, nil
 }
+
+func (s *Service) AddVote(ctx context.Context, r *AddVoteRequest) (*domain.PollWithDetails, error) {
+	vote, err := parseVoteData(r.CustomID)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	user, err := s.db.Users().GetUserByDiscordID(ctx, r.UserID)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	poll, err := s.db.Polls().GetPollWithDetails(ctx, vote.PollId)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	newVote, err := s.db.Polls().TryAddVote(ctx, user.ID, poll.ID, vote.OptionId)
+	if errors.Is(err, repository.ErrAlreadyExists) {
+		return nil, &domain.UsersideError{
+			Msg: "Вы уже проголосовали в этом опросе.",
+		}
+	}
+
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	poll.Votes = append(poll.Votes, *newVote)
+
+	return poll, nil
+}
