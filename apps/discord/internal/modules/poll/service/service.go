@@ -121,6 +121,47 @@ func (s *Service) Stop(ctx context.Context, r *StopRequest) (*StopResponse, erro
 	}, nil
 }
 
+type AddOptionRequest struct {
+	GuildID string
+	UserID  string
+	PollID  int64
+	Option  string
+}
+
+func (s *Service) AddOption(ctx context.Context, r *AddOptionRequest) (*domain.PollWithDetails, error) {
+	pollId := r.PollID
+
+	var repoErr *repository.NotFoundError
+	poll, err := s.db.Polls().GetPollWithDetails(ctx, int(pollId))
+	if errors.As(err, &repoErr) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	if poll.Author.DiscordUserID != r.UserID {
+		return nil, ErrNotAuthor
+	}
+
+	if poll.Guild.DiscordGuildID != r.GuildID {
+		return nil, ErrNotFound
+	}
+
+	if len(poll.Options) == 25 {
+		return nil, ErrTooManyOptions
+	}
+
+	newOption, err := s.db.Polls().AddPollOption(ctx, int(pollId), r.Option)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	poll.Options = append(poll.Options, *newOption)
+
+	return poll, nil
+}
+
 func processPollOptions(rawOptions string) ([]string, error) {
 	optionsList := strings.Split(rawOptions, "|")
 	if len(optionsList) < 2 || len(optionsList) > 25 {
