@@ -13,14 +13,14 @@ func (h *Handler) GetRoutes() []*disroute.Cmd {
 					Path: SubcommandStart,
 					Type: disroute.TypeSubcommand,
 					Handlers: disroute.Handlers{
-						Cmd: h.startPoll,
+						Cmd: h.start,
 					},
 				},
 				{
 					Path: SubcommandStop,
 					Type: disroute.TypeSubcommand,
 					Handlers: disroute.Handlers{
-						Cmd:          h.stopPoll,
+						Cmd:          h.stop,
 						Autocomplete: h.autocompletePollList,
 					},
 				},
@@ -28,7 +28,7 @@ func (h *Handler) GetRoutes() []*disroute.Cmd {
 					Path: SubcommandStatus,
 					Type: disroute.TypeSubcommand,
 					Handlers: disroute.Handlers{
-						Cmd:          h.statusPoll,
+						Cmd:          h.status,
 						Autocomplete: h.autocompletePollList,
 					},
 				},
@@ -36,7 +36,7 @@ func (h *Handler) GetRoutes() []*disroute.Cmd {
 					Path: SubcommandAddOption,
 					Type: disroute.TypeSubcommand,
 					Handlers: disroute.Handlers{
-						Cmd:          h.addPollOption,
+						Cmd:          h.addOption,
 						Autocomplete: h.autocompletePollList,
 					},
 				},
@@ -44,7 +44,7 @@ func (h *Handler) GetRoutes() []*disroute.Cmd {
 					Path: SubcommandRemoveOption,
 					Type: disroute.TypeSubcommand,
 					Handlers: disroute.Handlers{
-						Cmd:          h.removePollOption,
+						Cmd:          h.removeOption,
 						Autocomplete: h.removeOptionAutocomplete,
 					},
 				},
