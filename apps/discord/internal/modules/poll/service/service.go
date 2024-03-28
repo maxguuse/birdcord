@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"strings"
-	"unicode/utf8"
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
@@ -19,12 +17,6 @@ func New(db repository.DB) *Service {
 	return &Service{
 		db: db,
 	}
-}
-
-type GetPollRequest struct {
-	GuildID string
-	UserID  string
-	PollID  int64
 }
 
 func (s *Service) GetPoll(ctx context.Context, r *GetPollRequest) (*domain.PollWithDetails, error) {
@@ -42,17 +34,6 @@ func (s *Service) GetPoll(ctx context.Context, r *GetPollRequest) (*domain.PollW
 	}
 
 	return poll, nil
-}
-
-type CreateRequest struct {
-	GuildID string
-	UserID  string
-	Poll    Poll
-}
-
-type Poll struct {
-	Title   string
-	Options string
 }
 
 func (s *Service) Create(ctx context.Context, r *CreateRequest) (*domain.PollWithDetails, error) {
@@ -83,17 +64,6 @@ func (s *Service) Create(ctx context.Context, r *CreateRequest) (*domain.PollWit
 	}
 
 	return poll, nil
-}
-
-type StopRequest struct {
-	GuildID string
-	UserID  string
-	PollID  int64
-}
-
-type StopResponse struct {
-	Poll    *domain.PollWithDetails
-	Winners []string
 }
 
 func (s *Service) Stop(ctx context.Context, r *StopRequest) (*StopResponse, error) {
@@ -140,13 +110,6 @@ func (s *Service) Stop(ctx context.Context, r *StopRequest) (*StopResponse, erro
 	}, nil
 }
 
-type AddOptionRequest struct {
-	GuildID string
-	UserID  string
-	PollID  int64
-	Option  string
-}
-
 func (s *Service) AddOption(ctx context.Context, r *AddOptionRequest) (*domain.PollWithDetails, error) {
 	pollId := r.PollID
 
@@ -175,13 +138,6 @@ func (s *Service) AddOption(ctx context.Context, r *AddOptionRequest) (*domain.P
 	poll.Options = append(poll.Options, *newOption)
 
 	return poll, nil
-}
-
-type RemoveOptionRequest struct {
-	GuildID  string
-	UserID   string
-	PollID   int64
-	OptionID int64
 }
 
 func (s *Service) RemoveOption(ctx context.Context, r *RemoveOptionRequest) (*domain.PollWithDetails, error) {
@@ -223,34 +179,4 @@ func (s *Service) RemoveOption(ctx context.Context, r *RemoveOptionRequest) (*do
 	})
 
 	return poll, nil
-}
-
-func processPollOptions(rawOptions string) ([]string, error) {
-	optionsList := strings.Split(rawOptions, "|")
-	if len(optionsList) < 2 || len(optionsList) > 25 {
-		return nil, &domain.UsersideError{
-			Msg: "Количество вариантов опроса должно быть от 2 до 25 включительно.",
-		}
-	}
-	if lo.SomeBy(optionsList, func(o string) bool {
-		return utf8.RuneCountInString(o) > 50 || utf8.RuneCountInString(o) < 1
-	}) {
-		return nil, &domain.UsersideError{
-			Msg: "Длина варианта опроса не может быть больше 50 или меньше 1 символа.",
-		}
-	}
-
-	return optionsList, nil
-}
-
-func validatePollAuthor(poll *domain.PollWithDetails, userId string, guildId string) error {
-	if poll.Author.DiscordUserID != userId {
-		return ErrNotAuthor
-	}
-
-	if poll.Guild.DiscordGuildID != guildId {
-		return ErrNotFound
-	}
-
-	return nil
 }
