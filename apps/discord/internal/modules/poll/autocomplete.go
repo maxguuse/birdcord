@@ -7,23 +7,17 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/service"
 	"github.com/samber/lo"
 )
 
 func (h *Handler) autocompletePollList(i *discordgo.Interaction, options optionsMap) (string, error) {
 	ctx := context.Background()
 
-	guild, err := h.Database.Guilds().GetGuildByDiscordID(ctx, i.GuildID)
-	if err != nil {
-		return "", err
-	}
-
-	user, err := h.Database.Users().GetUserByDiscordID(ctx, i.Member.User.ID)
-	if err != nil {
-		return "", err
-	}
-
-	polls, err := h.Database.Polls().GetActivePolls(ctx, guild.ID, user.ID)
+	polls, err := h.service.GetActivePolls(ctx, &service.GetActivePollsRequest{
+		GuildID: i.GuildID,
+		UserID:  i.Member.User.ID,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -61,9 +55,11 @@ func (h *Handler) autocompleteOptionList(i *discordgo.Interaction, options optio
 		return "", errors.New("there's no focused option")
 	}
 
-	pollId := rawPollId.IntValue()
-
-	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
+	poll, err := h.service.GetPoll(ctx, &service.GetPollRequest{
+		GuildID: i.GuildID,
+		UserID:  i.Member.User.ID,
+		PollID:  rawPollId.IntValue(),
+	})
 	if err != nil {
 		return "", err
 	}

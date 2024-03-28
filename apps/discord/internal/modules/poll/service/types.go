@@ -8,6 +8,11 @@ type GetPollRequest struct {
 	PollID  int64
 }
 
+type GetActivePollsRequest struct {
+	GuildID string
+	UserID  string
+}
+
 type CreateRequest struct {
 	GuildID string
 	UserID  string

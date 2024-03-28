@@ -36,6 +36,25 @@ func (s *Service) GetPoll(ctx context.Context, r *GetPollRequest) (*domain.PollW
 	return poll, nil
 }
 
+func (s *Service) GetActivePolls(ctx context.Context, r *GetActivePollsRequest) ([]*domain.Poll, error) {
+	guild, err := s.db.Guilds().GetGuildByDiscordID(ctx, r.GuildID)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.db.Users().GetUserByDiscordID(ctx, r.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	polls, err := s.db.Polls().GetActivePolls(ctx, guild.ID, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return polls, nil
+}
+
 func (s *Service) Create(ctx context.Context, r *CreateRequest) (*domain.PollWithDetails, error) {
 	optionsList, err := processPollOptions(r.Poll.Options)
 	if err != nil {
