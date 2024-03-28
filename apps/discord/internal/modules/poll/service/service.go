@@ -37,12 +37,8 @@ func (s *Service) GetPoll(ctx context.Context, r *GetPollRequest) (*domain.PollW
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	if poll.Author.DiscordUserID != r.UserID {
-		return nil, ErrNotAuthor
-	}
-
-	if poll.Guild.DiscordGuildID != r.GuildID {
-		return nil, ErrNotFound
+	if err := validatePollAuthor(poll, r.UserID, r.GuildID); err != nil {
+		return nil, err
 	}
 
 	return poll, nil
@@ -112,12 +108,8 @@ func (s *Service) Stop(ctx context.Context, r *StopRequest) (*StopResponse, erro
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	if poll.Author.DiscordUserID != r.UserID {
-		return nil, ErrNotAuthor
-	}
-
-	if poll.Guild.DiscordGuildID != r.GuildID {
-		return nil, ErrNotFound
+	if err := validatePollAuthor(poll, r.UserID, r.GuildID); err != nil {
+		return nil, err
 	}
 
 	var maxVotes int = 0
@@ -167,12 +159,8 @@ func (s *Service) AddOption(ctx context.Context, r *AddOptionRequest) (*domain.P
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	if poll.Author.DiscordUserID != r.UserID {
-		return nil, ErrNotAuthor
-	}
-
-	if poll.Guild.DiscordGuildID != r.GuildID {
-		return nil, ErrNotFound
+	if err := validatePollAuthor(poll, r.UserID, r.GuildID); err != nil {
+		return nil, err
 	}
 
 	if len(poll.Options) == 25 {
@@ -209,12 +197,8 @@ func (s *Service) RemoveOption(ctx context.Context, r *RemoveOptionRequest) (*do
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	if poll.Author.DiscordUserID != r.UserID {
-		return nil, ErrNotAuthor
-	}
-
-	if poll.Guild.DiscordGuildID != r.GuildID {
-		return nil, ErrNotFound
+	if err := validatePollAuthor(poll, r.UserID, r.GuildID); err != nil {
+		return nil, err
 	}
 
 	optionVotes := lo.CountBy(poll.Votes, func(v domain.PollVote) bool {
@@ -257,4 +241,16 @@ func processPollOptions(rawOptions string) ([]string, error) {
 	}
 
 	return optionsList, nil
+}
+
+func validatePollAuthor(poll *domain.PollWithDetails, userId string, guildId string) error {
+	if poll.Author.DiscordUserID != userId {
+		return ErrNotAuthor
+	}
+
+	if poll.Guild.DiscordGuildID != guildId {
+		return ErrNotFound
+	}
+
+	return nil
 }
