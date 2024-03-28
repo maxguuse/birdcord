@@ -21,6 +21,33 @@ func New(db repository.DB) *Service {
 	}
 }
 
+type GetPollRequest struct {
+	GuildID string
+	UserID  string
+	PollID  int64
+}
+
+func (s *Service) GetPoll(ctx context.Context, r *GetPollRequest) (*domain.PollWithDetails, error) {
+	var repoErr *repository.NotFoundError
+	poll, err := s.db.Polls().GetPollWithDetails(ctx, int(r.PollID))
+	if errors.As(err, &repoErr) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	if poll.Author.DiscordUserID != r.UserID {
+		return nil, ErrNotAuthor
+	}
+
+	if poll.Guild.DiscordGuildID != r.GuildID {
+		return nil, ErrNotFound
+	}
+
+	return poll, nil
+}
+
 type CreateRequest struct {
 	GuildID string
 	UserID  string

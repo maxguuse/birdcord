@@ -6,29 +6,19 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
-	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/service"
 )
 
 func (h *Handler) statusPoll(i *discordgo.Interaction, options optionsMap) (string, error) {
 	ctx := context.Background()
 
-	pollId := options["poll"].IntValue()
-
-	var repoErr *repository.NotFoundError
-	poll, err := h.Database.Polls().GetPollWithDetails(ctx, int(pollId))
-	if errors.As(err, &repoErr) {
-		return "", ErrNotFound
-	}
+	poll, err := h.service.GetPoll(ctx, &service.GetPollRequest{
+		GuildID: i.GuildID,
+		UserID:  i.Member.User.ID,
+		PollID:  options["poll"].IntValue(),
+	})
 	if err != nil {
-		return "", errors.Join(domain.ErrInternal, err)
-	}
-
-	if poll.Author.DiscordUserID != i.Member.User.ID {
-		return "", ErrNotAuthor
-	}
-
-	if poll.Guild.DiscordGuildID != i.GuildID {
-		return "", ErrNotFound
+		return "", err
 	}
 
 	err = h.sendPollMessage(ctx, i, poll)
