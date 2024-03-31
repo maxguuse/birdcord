@@ -1,10 +1,7 @@
 package liverole
 
 import (
-	"log/slog"
-
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/discord/internal/modules/helpers"
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/logger"
 	"go.uber.org/fx"
@@ -47,13 +44,4 @@ func NewHandler(opts HandlerOpts) *Handler {
 	}
 
 	return h
-}
-
-func (h *Handler) Autocomplete() (func(i *discordgo.Interaction), bool) {
-	return func(i *discordgo.Interaction) {
-		data := i.ApplicationCommandData()
-		h.Log.Debug("data", slog.Any("data", data))
-
-		_ = helpers.BuildOptionsMap(i)
-	}, false
 }
