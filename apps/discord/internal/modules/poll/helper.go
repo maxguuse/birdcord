@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
@@ -76,22 +75,4 @@ func buildPollEmbed(
 			},
 		},
 	}
-}
-
-func processPollOptions(rawOptions string) ([]string, error) {
-	optionsList := strings.Split(rawOptions, "|")
-	if len(optionsList) < 2 || len(optionsList) > 25 {
-		return nil, &domain.UsersideError{
-			Msg: "Количество вариантов опроса должно быть от 2 до 25 включительно.",
-		}
-	}
-	if lo.SomeBy(optionsList, func(o string) bool {
-		return utf8.RuneCountInString(o) > 50 || utf8.RuneCountInString(o) < 1
-	}) {
-		return nil, &domain.UsersideError{
-			Msg: "Длина варианта опроса не может быть больше 50 или меньше 1 символа.",
-		}
-	}
-
-	return optionsList, nil
 }

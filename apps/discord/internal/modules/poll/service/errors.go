@@ -1,4 +1,4 @@
-package poll
+package service
 
 import "github.com/maxguuse/birdcord/apps/discord/internal/domain"
 
