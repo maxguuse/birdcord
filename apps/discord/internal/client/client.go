@@ -10,85 +10,94 @@ import (
 	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
+	"github.com/maxguuse/disroute"
 	"go.uber.org/fx"
 )
 
-func NewSession(cfg *config.Config) (*discordgo.Session, error) {
-	s, err := discordgo.New("Bot " + cfg.DiscordToken)
-
-	s.Identify.Intents = discordgo.IntentsAll
-
-	return s, err
-}
-
 type Client struct {
-	*discordgo.Session
+	router *disroute.Router
+	logger logger.Logger
+	cfg    *config.Config
 
-	Cfg      *config.Config
-	Log      logger.Logger
-	Database repository.DB
-
-	CommandsHandler *modules.Handler
+	db repository.DB
 }
 
 type ClientOpts struct {
 	fx.In
-	LC fx.Lifecycle
+	LC             fx.Lifecycle
+	CommandHandler *modules.Handler
 
-	Log      logger.Logger
+	Cfg    *config.Config
+	Logger logger.Logger
+
 	Database repository.DB
-	Cfg      *config.Config
-
-	Session         *discordgo.Session
-	CommandsHandler *modules.Handler
 }
 
-func New(opts ClientOpts) *Client {
-	client := &Client{
-		Cfg:             opts.Cfg,
-		Log:             opts.Log,
-		Database:        opts.Database,
-		Session:         opts.Session,
-		CommandsHandler: opts.CommandsHandler,
+func New(opts ClientOpts) error {
+	router, err := disroute.New(opts.Cfg.DiscordToken)
+	if err != nil {
+		return err
 	}
 
-	client.registerLogger()
-	client.registerHandlers()
+	router.Session().Identify.Intents = discordgo.IntentsAll
+
+	c := &Client{
+		router: router,
+		logger: opts.Logger,
+		cfg:    opts.Cfg,
+
+		db: opts.Database,
+	}
+
+	router.Use(func(hf disroute.HandlerFunc) disroute.HandlerFunc {
+		return func(ctx *disroute.Ctx) disroute.Response {
+			c.logger.Debug("interaction",
+				slog.String("type", ctx.Interaction().Type.String()),
+				slog.String("id", ctx.Interaction().ID),
+				slog.String("user", ctx.Interaction().Member.User.GlobalName))
+
+			return hf(ctx)
+		}
+	})
+
+	router.Use(func(hf disroute.HandlerFunc) disroute.HandlerFunc {
+		return func(ctx *disroute.Ctx) disroute.Response {
+			err := ctx.Session().InteractionRespond(ctx.Interaction(), &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Flags: discordgo.MessageFlagsEphemeral,
+				},
+			})
+
+			if err != nil {
+				c.logger.Error("error responding to interaction", slog.Any("error", err))
+			}
+
+			return hf(ctx)
+		}
+	})
+
+	router.SetResponseHandler(c.responseHandler)
+	router.SetComponentKeyFunc(c.componentKeyFunc)
+
+	c.registerLogger()
+	c.registerHandlers()
+
+	opts.CommandHandler.Register(router)
 
 	opts.LC.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
-			if err := client.Open(); err != nil {
-				client.Log.Error(
-					"Error opening connection",
-					slog.String("error", err.Error()),
-				)
-
-				return err
-			}
-
-			return nil
+			return c.router.Open()
 		},
 		OnStop: func(_ context.Context) error {
-			if err := client.Close(); err != nil {
-				client.Log.Error(
-					"Error closing connection",
-					slog.String("error", err.Error()),
-				)
-
-				return err
-			}
-
-			return nil
+			return c.router.Session().Close()
 		},
 	})
 
-	return client
+	return nil
 }
 
 var NewFx = fx.Options(
-	fx.Provide(
-		NewSession,
-	),
 	fx.Invoke(
 		New,
 	),

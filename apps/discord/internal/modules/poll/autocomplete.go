@@ -1,90 +1,75 @@
 package poll
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/service"
+	"github.com/maxguuse/disroute"
 	"github.com/samber/lo"
 )
 
-func (h *Handler) autocompletePollList(i *discordgo.Interaction, options optionsMap) (string, error) {
-	ctx := context.Background()
-
-	polls, err := h.service.GetActivePolls(ctx, &service.GetActivePollsRequest{
-		GuildID: i.GuildID,
-		UserID:  i.Member.User.ID,
+func (h *Handler) autocompletePollList(ctx *disroute.Ctx) []*discordgo.ApplicationCommandOptionChoice {
+	polls, err := h.service.GetActivePolls(ctx.Context(), &service.GetActivePollsRequest{
+		GuildID: ctx.Interaction().GuildID,
+		UserID:  ctx.Interaction().Member.User.ID,
 	})
 	if err != nil {
-		return "", err
+		h.logger.Error("Failed to get active polls", err)
+
+		return nil
 	}
 
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(polls))
-	for i, poll := range polls {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:  fmt.Sprintf("Poll ID: %d | %s", poll.ID, poll.Title),
-			Value: poll.ID,
+	choices := lo.FilterMap(polls, func(p *domain.Poll, _ int) (*discordgo.ApplicationCommandOptionChoice, bool) {
+		choice := &discordgo.ApplicationCommandOptionChoice{
+			Name:  fmt.Sprintf("Poll ID: %d | %s", p.ID, p.Title),
+			Value: p.ID,
 		}
-	}
 
-	err = h.Session.InteractionRespond(i, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
-		Data: &discordgo.InteractionResponseData{
-			Choices: lo.Filter(choices, func(c *discordgo.ApplicationCommandOptionChoice, _ int) bool {
-				s, ok := options["poll"].Value.(string)
-				if !ok {
-					return false
-				}
+		s, ok := ctx.Options["poll"].Value.(string)
+		if !ok {
+			return choice, false
+		}
 
-				return strings.Contains(c.Name, s)
-			}),
-		},
+		return choice, strings.Contains(choice.Name, s)
 	})
 
-	return "", err
+	return choices
 }
 
-func (h *Handler) autocompleteOptionList(i *discordgo.Interaction, options optionsMap) (string, error) {
-	ctx := context.Background()
-
-	rawPollId, ok := options["poll"]
+func (h *Handler) autocompleteOptionList(ctx *disroute.Ctx) []*discordgo.ApplicationCommandOptionChoice {
+	rawPollId, ok := ctx.Options["poll"]
 	if !ok {
-		return "", errors.New("there's no focused option")
+		h.logger.Error("Failed to get poll id")
+
+		return nil
 	}
 
-	poll, err := h.service.GetPoll(ctx, &service.GetPollRequest{
-		GuildID: i.GuildID,
-		UserID:  i.Member.User.ID,
+	poll, err := h.service.GetPoll(ctx.Context(), &service.GetPollRequest{
+		GuildID: ctx.Interaction().GuildID,
+		UserID:  ctx.Interaction().Member.User.ID,
 		PollID:  rawPollId.IntValue(),
 	})
 	if err != nil {
-		return "", err
+		return nil
 	}
 
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(poll.Options))
-	for i, option := range poll.Options {
-		choices[i] = &discordgo.ApplicationCommandOptionChoice{
-			Name:  option.Title,
-			Value: option.ID,
-		}
-	}
+	choices := lo.FilterMap(poll.Options,
+		func(o domain.PollOption, _ int) (*discordgo.ApplicationCommandOptionChoice, bool) {
+			choice := &discordgo.ApplicationCommandOptionChoice{
+				Name:  o.Title,
+				Value: o.ID,
+			}
 
-	err = h.Session.InteractionRespond(i, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionApplicationCommandAutocompleteResult,
-		Data: &discordgo.InteractionResponseData{
-			Choices: lo.Filter(choices, func(c *discordgo.ApplicationCommandOptionChoice, _ int) bool {
-				s, ok := options["option"].Value.(string)
-				if !ok {
-					return false
-				}
+			s, ok := ctx.Options["option"].Value.(string)
+			if !ok {
+				return choice, false
+			}
 
-				return strings.Contains(c.Name, s)
-			}),
-		},
-	})
+			return choice, strings.Contains(choice.Name, s)
+		})
 
-	return "", err
+	return choices
 }

@@ -1,27 +1,32 @@
 package poll
 
 import (
-	"context"
-
-	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/service"
+	"github.com/maxguuse/disroute"
 )
 
-func (h *Handler) VoteBtnHandler(i *discordgo.Interaction) (string, error) {
-	ctx := context.Background()
-
-	poll, err := h.service.AddVote(ctx, &service.AddVoteRequest{
-		UserID:   i.Member.User.ID,
-		CustomID: i.MessageComponentData().CustomID,
+func (h *Handler) VoteBtnHandler(ctx *disroute.Ctx) disroute.Response {
+	poll, err := h.service.AddVote(ctx.Context(), &service.AddVoteRequest{
+		UserID:   ctx.Interaction().Member.User.ID,
+		CustomID: ctx.Interaction().MessageComponentData().CustomID,
 	})
 	if err != nil {
-		return "", err
+		return disroute.Response{
+			Err: err,
+		}
 	}
 
 	err = h.updatePollMessages(&UpdatePollMessageData{
-		poll:        poll,
-		interaction: i,
+		poll: poll,
+		ctx:  ctx,
 	})
+	if err != nil {
+		return disroute.Response{
+			Err: err,
+		}
+	}
 
-	return "Голос зарегистрирован.", err
+	return disroute.Response{
+		Message: "Голос добавлен.",
+	}
 }

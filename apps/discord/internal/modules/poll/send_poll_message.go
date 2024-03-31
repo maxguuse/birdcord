@@ -1,26 +1,25 @@
 package poll
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/service"
+	"github.com/maxguuse/disroute"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 )
 
 func (h *Handler) sendPollMessage(
-	ctx context.Context,
-	i *discordgo.Interaction,
+	ctx *disroute.Ctx,
 	poll *domain.PollWithDetails,
 ) error {
-	actionRows := h.buildActionRows(poll, i.ID)
-	pollEmbed := buildPollEmbed(poll, i.Member.User)
+	actionRows := h.buildActionRows(poll, ctx.Interaction().ID)
+	pollEmbed := buildPollEmbed(poll, ctx.Interaction().Member.User)
 
-	msg, err := h.Session.ChannelMessageSendComplex(i.ChannelID, &discordgo.MessageSend{
+	msg, err := ctx.Session().ChannelMessageSendComplex(ctx.Interaction().ChannelID, &discordgo.MessageSend{
 		Embeds:     pollEmbed,
 		Components: actionRows,
 	})
@@ -28,34 +27,34 @@ func (h *Handler) sendPollMessage(
 		return err
 	}
 
-	err = h.service.CreateMessage(ctx, &service.CreateMessageRequest{
+	err = h.service.CreateMessage(ctx.Context(), &service.CreateMessageRequest{
 		PollID: poll.ID,
 		Message: service.Message{
 			ID:        msg.ID,
-			ChannelID: i.ChannelID,
+			ChannelID: ctx.Interaction().ChannelID,
 		},
 	})
 
 	if err != nil {
-		return errors.Join(h.Session.ChannelMessageDelete(i.ChannelID, msg.ID), err)
+		return errors.Join(ctx.Session().ChannelMessageDelete(ctx.Interaction().ChannelID, msg.ID), err)
 	}
 
 	return nil
 }
 
 type UpdatePollMessageData struct {
-	poll        *domain.PollWithDetails
-	interaction *discordgo.Interaction
-	stop        bool
-	fields      []*discordgo.MessageEmbedField
+	poll   *domain.PollWithDetails
+	ctx    *disroute.Ctx
+	stop   bool
+	fields []*discordgo.MessageEmbedField
 }
 
 func (h *Handler) updatePollMessages(data *UpdatePollMessageData) error {
 	actionRows := lo.
 		If(data.stop, make([]discordgo.MessageComponent, 0)).
-		Else(h.buildActionRows(data.poll, data.interaction.ID))
+		Else(h.buildActionRows(data.poll, data.ctx.Interaction().ID))
 
-	author, err := h.Session.User(data.poll.Author.DiscordUserID)
+	author, err := data.ctx.Session().User(data.poll.Author.DiscordUserID)
 	if err != nil {
 		return err
 	}
@@ -70,12 +69,12 @@ func (h *Handler) updatePollMessages(data *UpdatePollMessageData) error {
 	for _, msg := range data.poll.Messages {
 		msg := msg
 		wg.Go(func() error {
-			_, err := h.Session.ChannelMessageEditComplex(&discordgo.MessageEdit{
+			_, err := data.ctx.Session().ChannelMessageEditComplex(&discordgo.MessageEdit{
 				ID:         msg.DiscordMessageID,
 				Channel:    msg.DiscordChannelID,
 				Content:    new(string),
-				Components: actionRows,
-				Embeds:     pollEmbed,
+				Components: &actionRows,
+				Embeds:     &pollEmbed,
 			})
 
 			return err

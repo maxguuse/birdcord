@@ -10,20 +10,21 @@ import (
 )
 
 func (c *Client) registerHandlers() {
-	c.AddHandler(c.onInteractionCreate)
-	c.AddHandler(c.onMessageDelete)
-	c.AddHandler(c.onReady)
-	c.AddHandler(c.onConnect)
-	c.AddHandler(c.onDisconnect)
-	c.AddHandler(c.onStatusChanged)
+	c.router.Session().AddHandler(c.router.InteractionHandler)
+
+	c.router.Session().AddHandler(c.onMessageDelete)
+	c.router.Session().AddHandler(c.onReady)
+	c.router.Session().AddHandler(c.onConnect)
+	c.router.Session().AddHandler(c.onDisconnect)
+	c.router.Session().AddHandler(c.onStatusChanged)
 }
 
 func (c *Client) onConnect(_ *discordgo.Session, _ *discordgo.Connect) {
-	c.Log.Info("Bot is connected!")
+	c.logger.Info("Bot is connected!")
 }
 
 func (c *Client) onDisconnect(_ *discordgo.Session, _ *discordgo.Disconnect) {
-	c.Log.Info("Bot is disconnected!")
+	c.logger.Info("Bot is disconnected!")
 }
 
 func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpdate) {
@@ -37,19 +38,19 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 		return a.Type == discordgo.ActivityTypeStreaming
 	})
 
-	guild, err := c.Database.Guilds().GetGuildByDiscordID(ctx, u.GuildID)
+	guild, err := c.db.Guilds().GetGuildByDiscordID(ctx, u.GuildID)
 	if err != nil {
-		c.Log.Error("could not get guild", err)
+		c.logger.Error("could not get guild", err)
 	}
 
-	roles, err := c.Database.Liveroles().GetLiveroles(ctx, guild.ID)
+	roles, err := c.db.Liveroles().GetLiveroles(ctx, guild.ID)
 	if err != nil {
-		c.Log.Error("could not give streaming role", err)
+		c.logger.Error("could not give streaming role", err)
 	}
 
-	member, err := c.GuildMember(u.GuildID, u.User.ID)
+	member, err := c.router.Session().GuildMember(u.GuildID, u.User.ID)
 	if err != nil {
-		c.Log.Error("could not get member", err)
+		c.logger.Error("could not get member", err)
 	}
 
 	liverolesIds := lo.Map(roles, func(role *domain.Liverole, _ int) string { return role.DiscordRoleID })
@@ -57,11 +58,11 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 
 	if isStreaming {
 		for _, role := range roles {
-			err = c.GuildMemberRoleAdd(u.GuildID, u.User.ID, role.DiscordRoleID)
+			err = c.router.Session().GuildMemberRoleAdd(u.GuildID, u.User.ID, role.DiscordRoleID)
 			if err != nil {
-				c.Log.Error("could not add role", err)
+				c.logger.Error("could not add role", err)
 			}
-			c.Log.Debug("Role added",
+			c.logger.Debug("Role added",
 				slog.String("role", role.DiscordRoleID),
 				slog.String("user", u.Presence.User.ID),
 			)
@@ -69,16 +70,16 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 	} else {
 		for _, liveroleId := range liverolesIds {
 			if !isStreaming && lo.Contains(memberRolesIds, liveroleId) {
-				err = c.GuildMemberRoleRemove(u.GuildID, u.User.ID, liveroleId)
+				err = c.router.Session().GuildMemberRoleRemove(u.GuildID, u.User.ID, liveroleId)
 				if err != nil {
-					c.Log.Error("could not remove role", err)
+					c.logger.Error("could not remove role", err)
 				}
 			}
 		}
 	}
 
-	c.Log.Debug("Status changed",
-		slog.String("user", u.Presence.User.ID),
-		slog.String("status", string(u.Status)),
-	)
+	// c.logger.Debug("Status changed",
+	// 	slog.String("user", u.Presence.User.ID),
+	// 	slog.String("status", string(u.Status)),
+	// )
 }

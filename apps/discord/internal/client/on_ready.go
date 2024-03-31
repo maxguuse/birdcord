@@ -8,23 +8,18 @@ import (
 )
 
 func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
-	c.Log.Info(
+	c.logger.Info(
 		"Bot is ready",
 		slog.String("user", r.User.Username),
 		slog.String("session_id", r.SessionID),
 	)
 
-	err := c.CommandsHandler.Register()
-	if err != nil {
-		panic(err)
-	}
-
 	customStatus := lo.If(
-		c.Cfg.Environment == "prod",
-		"Release "+c.Cfg.Version,
+		c.cfg.Environment == "prod",
+		"Release "+c.cfg.Version,
 	).Else("Смотрит как Гусь кодит 💻")
 
-	if err := c.UpdateStatusComplex(discordgo.UpdateStatusData{
+	if err := c.router.Session().UpdateStatusComplex(discordgo.UpdateStatusData{
 		Activities: []*discordgo.Activity{
 			{
 				Name:  "Custom status",
@@ -35,7 +30,7 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 		AFK:    false,
 		Status: string(discordgo.StatusOnline),
 	}); err != nil {
-		c.Log.Error(
+		c.logger.Error(
 			"Error updating status",
 			slog.String("error", err.Error()),
 		)

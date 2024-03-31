@@ -1,29 +1,30 @@
 package poll
 
 import (
-	"errors"
-
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/disroute"
 	"github.com/samber/lo"
 )
 
-func (h *Handler) removeOptionAutocomplete(i *discordgo.Interaction, options optionsMap) (string, error) {
-	data := i.ApplicationCommandData()
+func (h *Handler) removeOptionAutocomplete(ctx *disroute.Ctx) []*discordgo.ApplicationCommandOptionChoice {
+	data := ctx.Interaction().ApplicationCommandData()
 
 	focusedOption, ok := lo.Find(data.Options[0].Options, func(o *discordgo.ApplicationCommandInteractionDataOption) bool {
 		return o.Focused
 	})
 	if !ok {
-		return "", errors.New("there's no focused option")
+		h.logger.Error("Failed to find focused option")
+
+		return nil
 	}
 
-	var err error
+	var choices []*discordgo.ApplicationCommandOptionChoice
 	switch focusedOption.Name {
 	case "poll":
-		_, err = h.autocompletePollList(i, options)
+		choices = h.autocompletePollList(ctx)
 	case "option":
-		_, err = h.autocompleteOptionList(i, options)
+		choices = h.autocompleteOptionList(ctx)
 	}
 
-	return "", err
+	return choices
 }
