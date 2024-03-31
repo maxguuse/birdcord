@@ -30,7 +30,6 @@ type Handler struct {
 	Log     logger.Logger
 	Session *discordgo.Session
 
-	// Refactor
 	service *service.Service
 }
 
@@ -40,7 +39,6 @@ type HandlerOpts struct {
 	Log     logger.Logger
 	Session *discordgo.Session
 
-	// Refactor
 	Service *service.Service
 }
 
@@ -49,7 +47,6 @@ func NewHandler(opts HandlerOpts) *Handler {
 		Log:     opts.Log,
 		Session: opts.Session,
 
-		// Refactor
 		service: opts.Service,
 	}
 
