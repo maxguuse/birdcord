@@ -31,6 +31,6 @@ func (c *Client) registerLogger() {
 
 		r := slog.NewRecord(time.Now(), lvl, msg, pcs[0])
 
-		_ = c.Log.Handler().Handle(context.Background(), r)
+		_ = c.logger.Handler().Handle(context.Background(), r)
 	}
 }

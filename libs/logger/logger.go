@@ -3,13 +3,14 @@ package logger
 import (
 	"context"
 	"fmt"
-	"github.com/rs/zerolog"
-	slogzerolog "github.com/samber/slog-zerolog/v2"
 	"log/slog"
 	"os"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog"
+	slogzerolog "github.com/samber/slog-zerolog/v2"
 )
 
 type Logger interface {
@@ -57,7 +58,7 @@ func newLogger(service string) Logger {
 			slog.NewJSONHandler(
 				os.Stdout,
 				&slog.HandlerOptions{
-					Level:       slog.LevelInfo,
+					Level:       slog.LevelError,
 					AddSource:   true,
 					ReplaceAttr: replaceAttr,
 				},

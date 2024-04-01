@@ -1,122 +1,138 @@
 package poll
 
 import (
-	"context"
 	"errors"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/service"
+	"github.com/maxguuse/disroute"
 )
 
-func (h *Handler) addOption(i *discordgo.Interaction, options optionsMap) (string, error) {
-	ctx := context.Background()
-
-	poll, err := h.service.AddOption(ctx, &service.AddOptionRequest{
-		GuildID: i.GuildID,
-		UserID:  i.Member.User.ID,
-		PollID:  options["poll"].IntValue(),
-		Option:  options["option"].StringValue(),
+func (h *Handler) addOption(ctx *disroute.Ctx) disroute.Response {
+	poll, err := h.service.AddOption(ctx.Context(), &service.AddOptionRequest{
+		GuildID: ctx.Interaction().GuildID,
+		UserID:  ctx.Interaction().Member.User.ID,
+		PollID:  ctx.Options["poll"].IntValue(),
+		Option:  ctx.Options["option"].StringValue(),
 	})
 	if err != nil {
-		return "", err
+		return disroute.Response{
+			Err: err,
+		}
 	}
 
 	err = h.updatePollMessages(&UpdatePollMessageData{
-		poll:        poll,
-		interaction: i,
+		poll: poll,
+		ctx:  ctx,
 	})
 	if err != nil {
-		return "", err
+		return disroute.Response{
+			Err: err,
+		}
 	}
 
-	return "Вариант опроса успешно добавлен.", nil
+	return disroute.Response{
+		Message: "Вариант опроса успешно добавлен.",
+	}
 }
 
-func (h *Handler) removeOption(i *discordgo.Interaction, options optionsMap) (string, error) {
-	ctx := context.Background()
-
-	poll, err := h.service.RemoveOption(ctx, &service.RemoveOptionRequest{
-		GuildID:  i.GuildID,
-		UserID:   i.Member.User.ID,
-		PollID:   options["poll"].IntValue(),
-		OptionID: options["option"].IntValue(),
+func (h *Handler) removeOption(ctx *disroute.Ctx) disroute.Response {
+	poll, err := h.service.RemoveOption(ctx.Context(), &service.RemoveOptionRequest{
+		GuildID:  ctx.Interaction().GuildID,
+		UserID:   ctx.Interaction().Member.User.ID,
+		PollID:   ctx.Options["poll"].IntValue(),
+		OptionID: ctx.Options["option"].IntValue(),
 	})
 	if err != nil {
-		return "", err
+		return disroute.Response{
+			Err: err,
+		}
 	}
 
 	err = h.updatePollMessages(&UpdatePollMessageData{
-		poll:        poll,
-		interaction: i,
+		poll: poll,
+		ctx:  ctx,
 	})
 	if err != nil {
-		return "", errors.Join(domain.ErrInternal, err)
+		return disroute.Response{
+			Err: errors.Join(domain.ErrInternal, err),
+		}
 	}
 
-	return "Вариант опроса успешно удален.", nil
+	return disroute.Response{
+		Message: "Вариант опроса успешно удалён.",
+	}
 }
 
-func (h *Handler) start(i *discordgo.Interaction, options optionsMap) (string, error) {
-	ctx := context.Background()
-
-	poll, err := h.service.Create(ctx, &service.CreateRequest{
-		GuildID: i.GuildID,
-		UserID:  i.Member.User.ID,
+func (h *Handler) start(ctx *disroute.Ctx) disroute.Response {
+	poll, err := h.service.Create(ctx.Context(), &service.CreateRequest{
+		GuildID: ctx.Interaction().GuildID,
+		UserID:  ctx.Interaction().Member.User.ID,
 		Poll: service.Poll{
-			Title:   options["title"].StringValue(),
-			Options: options["options"].StringValue(),
+			Title:   ctx.Options["title"].StringValue(),
+			Options: ctx.Options["options"].StringValue(),
 		},
 	})
 	if err != nil {
-		return "", err
+		return disroute.Response{
+			Err: err,
+		}
 	}
 
-	err = h.sendPollMessage(ctx, i, poll)
+	err = h.sendPollMessage(ctx, poll)
 	if err != nil {
-		return "", errors.Join(domain.ErrInternal, err)
+		return disroute.Response{
+			Err: errors.Join(domain.ErrInternal, err),
+		}
 	}
 
-	return "Опрос успешно создан.", nil
+	return disroute.Response{
+		Message: "Опрос успешно создан.",
+	}
 }
 
-func (h *Handler) status(i *discordgo.Interaction, options optionsMap) (string, error) {
-	ctx := context.Background()
-
-	poll, err := h.service.GetPoll(ctx, &service.GetPollRequest{
-		GuildID: i.GuildID,
-		UserID:  i.Member.User.ID,
-		PollID:  options["poll"].IntValue(),
+func (h *Handler) status(ctx *disroute.Ctx) disroute.Response {
+	poll, err := h.service.GetPoll(ctx.Context(), &service.GetPollRequest{
+		GuildID: ctx.Interaction().GuildID,
+		UserID:  ctx.Interaction().Member.User.ID,
+		PollID:  ctx.Options["poll"].IntValue(),
 	})
 	if err != nil {
-		return "", err
+		return disroute.Response{
+			Err: err,
+		}
 	}
 
-	err = h.sendPollMessage(ctx, i, poll)
+	err = h.sendPollMessage(ctx, poll)
 	if err != nil {
-		return "", errors.Join(domain.ErrInternal, err)
+		return disroute.Response{
+			Err: errors.Join(domain.ErrInternal, err),
+		}
 	}
 
-	return "Опрос успешно отправлен.", nil
+	return disroute.Response{
+		Message: "Опрос успешно отправлен.",
+	}
 }
 
-func (h *Handler) stop(i *discordgo.Interaction, options optionsMap) (string, error) {
-	ctx := context.Background()
-
-	res, err := h.service.Stop(ctx, &service.StopRequest{
-		GuildID: i.GuildID,
-		UserID:  i.Member.User.ID,
-		PollID:  options["poll"].IntValue(),
+func (h *Handler) stop(ctx *disroute.Ctx) disroute.Response {
+	res, err := h.service.Stop(ctx.Context(), &service.StopRequest{
+		GuildID: ctx.Interaction().GuildID,
+		UserID:  ctx.Interaction().Member.User.ID,
+		PollID:  ctx.Options["poll"].IntValue(),
 	})
 	if err != nil {
-		return "", err
+		return disroute.Response{
+			Err: err,
+		}
 	}
 
 	err = h.updatePollMessages(&UpdatePollMessageData{
-		poll:        res.Poll,
-		interaction: i,
-		stop:        true,
+		poll: res.Poll,
+		ctx:  ctx,
+		stop: true,
 		fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Победители",
@@ -126,8 +142,12 @@ func (h *Handler) stop(i *discordgo.Interaction, options optionsMap) (string, er
 		},
 	})
 	if err != nil {
-		return "", errors.Join(domain.ErrInternal, err)
+		return disroute.Response{
+			Err: errors.Join(domain.ErrInternal, err),
+		}
 	}
 
-	return "Опрос успешно остановлен.", nil
+	return disroute.Response{
+		Message: "Опрос успешно остановлен.",
+	}
 }

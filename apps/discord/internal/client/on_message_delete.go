@@ -10,13 +10,13 @@ import (
 func (c *Client) onMessageDelete(_ *discordgo.Session, m *discordgo.MessageDelete) {
 	ctx := context.Background()
 
-	err := c.Database.Messages().DeleteMessage(ctx, m.ID)
+	err := c.db.Messages().DeleteMessage(ctx, m.ID)
 	if err != nil {
-		c.Log.Error("error deleting message", slog.String("error", err.Error()))
+		c.logger.Error("error deleting message", slog.String("error", err.Error()))
 
 		return
 	}
-	c.Log.Info(
+	c.logger.Info(
 		"message deleted",
 		slog.String("message_id", m.ID),
 	)
