@@ -3,6 +3,7 @@ module github.com/maxguuse/birdcord/apps/discord
 go 1.21.5
 
 require (
+	github.com/avast/retry-go/v4 v4.5.1
 	github.com/bwmarrin/discordgo v0.27.2-0.20240315152229-33ee38cbf271
 	github.com/jackc/pgx/v5 v5.5.3
 	github.com/maxguuse/disroute v1.0.3

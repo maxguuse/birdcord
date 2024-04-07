@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/samber/lo"
@@ -48,9 +49,26 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 		c.logger.Error("could not give streaming role", err)
 	}
 
-	member, err := c.router.Session().GuildMember(u.GuildID, u.User.ID)
+	var member *discordgo.Member
+	err = retry.Do(func() error {
+		m, err := c.router.Session().GuildMember(u.GuildID, u.User.ID)
+		if err != nil {
+			return err
+		}
+
+		member = m
+
+		return nil
+	},
+		retry.Attempts(5),
+	)
 	if err != nil {
-		c.logger.Error("could not get member", err)
+		c.logger.Error("failed to fetch member from discord",
+			slog.Any("error", err),
+			slog.String("guild", u.GuildID),
+		)
+
+		return
 	}
 
 	liverolesIds := lo.Map(roles, func(role *domain.Liverole, _ int) string { return role.DiscordRoleID })
