@@ -54,5 +54,5 @@ jobs:
           script: |
             echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login --username ${{ vars.DOCKERHUB_USERNAME }} --password-stdin docker.io
             cd ~/.deploy/${{ github.event.repository.name }}
-            docker-compose -f ./docker-compose.yml pull
-            docker-compose -f ./docker-compose.yml up -d
+            docker compose -f ./docker-compose.yml pull
+            docker compose -f ./docker-compose.yml up -d
