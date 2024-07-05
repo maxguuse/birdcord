@@ -35,6 +35,8 @@ jobs:
           echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
           echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env
           echo "CONNECTION_STRING=${{ secrets.CONNECTION_STRING }}" >> .env
+          echo "ADMINER_DEFAULT_SERVER=${{ vars.ADMINER_DEFAULT_SERVER }}" >> .env
+          echo "ADMINER_PLUGINS=enum-types" >> .env
 
       - name: Copy compose file and .env
         uses: appleboy/scp-action@v0.1.7

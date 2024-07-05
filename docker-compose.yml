@@ -1,4 +1,10 @@
 services:
+  adminer:
+    image: adminer
+    ports:
+      - '8085:8080'
+    env_file:
+      - .env
   db:
     image: postgres:15-alpine
     ports:
