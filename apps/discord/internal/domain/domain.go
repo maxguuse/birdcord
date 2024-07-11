@@ -3,15 +3,15 @@ package domain
 import "time"
 
 type Poll struct {
-	ID        int
-	Title     string
-	CreatedAt time.Time
+	ID        int       `alias:"polls.id"`
+	Title     string    `alias:"polls.title"`
+	IsActive  bool      `alias:"polls.is_active"`
+	CreatedAt time.Time `alias:"polls.created_at"`
 }
 
 type PollDetails struct {
-	IsActive bool
-	Guild    PollGuild
-	Author   PollAuthor
+	Guild  Guild
+	Author User
 
 	Options  []PollOption
 	Messages []PollMessage
@@ -23,42 +23,32 @@ type PollWithDetails struct {
 	PollDetails
 }
 
-type PollGuild struct {
-	ID             int
-	DiscordGuildID string
-}
-
-type PollAuthor struct {
-	ID            int
-	DiscordUserID string
-}
-
 type PollOption struct {
-	ID    int
-	Title string
+	ID    int    `alias:"poll_options.id"`
+	Title string `alias:"poll_options.title"`
 }
 
 type PollMessage struct {
-	ID               int
-	MessageID        int
-	DiscordMessageID string
-	DiscordChannelID string
+	ID               int    `alias:"poll_messages.id"`
+	MessageID        int    `alias:"poll_messages.message_id"`
+	DiscordMessageID string `alias:"messages.discord_message_id"`
+	DiscordChannelID string `alias:"messages.discord_channel_id"`
 }
 
 type PollVote struct {
-	ID       int
-	OptionID int
-	UserID   int
+	ID       int `alias:"poll_votes.id"`
+	OptionID int `alias:"poll_votes.option_id"`
+	UserID   int `alias:"poll_votes.user_id"`
 }
 
 type User struct {
-	ID            int
-	DiscordUserID string
+	ID            int    `alias:"users.id"`
+	DiscordUserID string `alias:"users.discord_user_id"`
 }
 
 type Guild struct {
-	ID             int
-	DiscordGuildID string
+	ID             int    `alias:"guilds.id"`
+	DiscordGuildID string `alias:"guilds.discord_guild_id"`
 }
 
 type Liverole struct {
