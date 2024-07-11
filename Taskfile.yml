@@ -33,32 +33,13 @@ tasks:
     cmds:
       - task: generate-sqlc
       - task: generate-grpc
-  generate-sqlc:
-    desc: "Generate code for SQLC"
+  generate-jet:
+    desc: "Generate code for Jet SQL builder"
     aliases:
-      - gen-sqlc
-      - sqlc
-    vars:
-      CONFIG: ./configs/sqlc.yaml
+      - gen-jet
+      - jet
     cmds:
-      - sqlc generate -f {{.CONFIG}}
-    sources:
-      - "libs/sqlc/sql/*.sql"
-  generate-grpc:
-    desc: "Generate code for gRPC"
-    aliases:
-      - gen-grpc
-      - grpc
-    vars:
-      PROTOS: libs/grpc/proto
-      GENERATED: libs/grpc/generated
-    cmds:
-      - mkdir -p {{.GENERATED}}
-      - protoc
-        -I {{.PROTOS}}
-        --go_out=module={{.PROJECT}}/{{.GENERATED}}:{{.GENERATED}}
-        --go-grpc_out=module={{.PROJECT}}/{{.GENERATED}}:{{.GENERATED}}
-        {{.PROTOS}}/*.proto
-    sources:
-      - "{{.PROTOS}}/*.proto"
-
+      - jet 
+        -dsn={{.CONNECTION_STRING}}
+        -ignore-tables=goose_db_version
+        -path=./libs/jet/generated

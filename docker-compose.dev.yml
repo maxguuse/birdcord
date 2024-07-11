@@ -1,0 +1,22 @@
+services:
+  db-dev:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - "50051:5432"
+    env_file:
+      - dev.env
+    networks:
+      - birdcord-dev
+  adminer-dev:
+    image: adminer
+    ports:
+      - '50052:8080'
+    env_file:
+      - dev.env
+    networks:
+      - birdcord-dev
+  
+networks:
+  birdcord-dev:
+    driver: bridge

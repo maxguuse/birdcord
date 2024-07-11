@@ -6,30 +6,28 @@ import (
 	"fmt"
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
-	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules/liverole/repository"
+	db "github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/samber/lo"
 )
 
 type Service struct {
-	db repository.DB
+	repo repository.Repository
 }
 
-func New(db repository.DB) *Service {
+func New(
+	repo repository.Repository,
+) *Service {
 	return &Service{
-		db: db,
+		repo: repo,
 	}
 }
 
 func (s *Service) Add(ctx context.Context, r *AddLiveRoleRequest) error {
-	guild, err := s.db.Guilds().GetGuildByDiscordID(ctx, r.GuildID)
+	err := s.repo.CreateLiverole(ctx, r.GuildID, r.RoleID)
 	if err != nil {
-		return errors.Join(domain.ErrInternal, err)
-	}
-
-	_, err = s.db.Liveroles().CreateLiverole(ctx, r.RoleID, guild.ID)
-	if err != nil {
-		if errors.Is(err, repository.ErrAlreadyExists) {
-			return ErrRoleAlreadyExists
+		if errors.Is(err, db.ErrAlreadyExists) {
+			return ErrRoleAlreadyExists // TODO: Add this error to repository
 		}
 
 		return errors.Join(domain.ErrInternal, err)
@@ -39,12 +37,7 @@ func (s *Service) Add(ctx context.Context, r *AddLiveRoleRequest) error {
 }
 
 func (s *Service) Clear(ctx context.Context, guildID string) error {
-	guild, err := s.db.Guilds().GetGuildByDiscordID(ctx, guildID)
-	if err != nil {
-		return errors.Join(domain.ErrInternal, err)
-	}
-
-	liveroles, err := s.db.Liveroles().GetLiveroles(ctx, guild.ID)
+	liveroles, err := s.repo.GetLiveroles(ctx, guildID)
 	if err != nil {
 		return errors.Join(domain.ErrInternal, err)
 	}
@@ -53,12 +46,13 @@ func (s *Service) Clear(ctx context.Context, guildID string) error {
 		return ErrNoLiveroles
 	}
 
-	err = s.db.Liveroles().DeleteLiveroles(
+	err = s.repo.DeleteLiveroles(
 		ctx,
-		guild.ID,
+		guildID,
 		lo.Map(liveroles, func(liverole *domain.Liverole, _ int) string {
 			return liverole.DiscordRoleID
-		}))
+		}),
+	)
 	if err != nil {
 		return errors.Join(domain.ErrInternal, err)
 	}
@@ -67,12 +61,7 @@ func (s *Service) Clear(ctx context.Context, guildID string) error {
 }
 
 func (s *Service) List(ctx context.Context, guildID string) ([]string, error) {
-	guild, err := s.db.Guilds().GetGuildByDiscordID(ctx, guildID)
-	if err != nil {
-		return nil, errors.Join(domain.ErrInternal, err)
-	}
-
-	liveroles, err := s.db.Liveroles().GetLiveroles(ctx, guild.ID)
+	liveroles, err := s.repo.GetLiveroles(ctx, guildID)
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
@@ -89,17 +78,7 @@ func (s *Service) List(ctx context.Context, guildID string) ([]string, error) {
 }
 
 func (s *Service) Remove(ctx context.Context, r *RemoveLiveRoleRequest) error {
-	guild, err := s.db.Guilds().GetGuildByDiscordID(ctx, r.GuildID)
-	if err != nil {
-		return errors.Join(domain.ErrInternal, err)
-	}
-
-	role, err := s.db.Liveroles().GetLiverole(ctx, guild.ID, r.RoleID)
-	if errors.Is(err, repository.ErrLiveroleNotFound) {
-		return ErrLiveroleNotFound
-	}
-
-	err = s.db.Liveroles().DeleteLiverole(ctx, role.ID)
+	err := s.repo.DeleteLiveroles(ctx, r.GuildID, []string{r.RoleID})
 	if err != nil {
 		return errors.Join(domain.ErrInternal, err)
 	}

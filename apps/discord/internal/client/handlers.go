@@ -39,12 +39,7 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 		return a.Type == discordgo.ActivityTypeStreaming
 	})
 
-	guild, err := c.db.Guilds().GetGuildByDiscordID(ctx, u.GuildID)
-	if err != nil {
-		c.logger.Error("could not get guild", err)
-	}
-
-	roles, err := c.db.Liveroles().GetLiveroles(ctx, guild.ID)
+	roles, err := c.lrRepo.GetLiveroles(ctx, u.GuildID)
 	if err != nil {
 		c.logger.Error("could not give streaming role", err)
 	}
@@ -95,9 +90,4 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 			}
 		}
 	}
-
-	// c.logger.Debug("Status changed",
-	// 	slog.String("user", u.Presence.User.ID),
-	// 	slog.String("status", string(u.Status)),
-	// )
 }
