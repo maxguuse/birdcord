@@ -6,5 +6,4 @@ use (
 	./libs/jet
 	./libs/logger
 	./libs/migrations
-	./libs/sqlc
 )
