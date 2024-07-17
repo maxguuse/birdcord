@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/go-jet/jet/v2/postgres"
-	"github.com/go-jet/jet/v2/qrm"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	. "github.com/maxguuse/birdcord/libs/jet/generated/birdcord/public/table"
 	"github.com/maxguuse/birdcord/libs/jet/txmanager"
@@ -15,19 +14,19 @@ import (
 type Opts struct {
 	fx.In
 
-	TxManager *txmanager.TxManager
+	TxGetter *txmanager.TxGetter
 }
 
 func NewPgx(opts Opts) *liverolePgx {
 	return &liverolePgx{
-		txm: opts.TxManager,
+		txGetter: opts.TxGetter,
 	}
 }
 
 var _ Repository = &liverolePgx{}
 
 type liverolePgx struct {
-	txm *txmanager.TxManager
+	txGetter *txmanager.TxGetter
 }
 
 func (l *liverolePgx) CreateLiverole(
@@ -35,20 +34,13 @@ func (l *liverolePgx) CreateLiverole(
 	discordGuildId int64,
 	discordRoleId int64,
 ) error {
-	err := l.txm.Do(ctx, func(db qrm.DB) error {
-		_, err := Liveroles.INSERT(
-			Liveroles.DiscordRoleID,
-			Liveroles.DiscordGuildID,
-		).VALUES(
-			discordRoleId,
-			discordGuildId,
-		).ExecContext(ctx, db)
-		if err != nil {
-			return err // TODO: Wrap error
-		}
-
-		return nil
-	})
+	_, err := Liveroles.INSERT(
+		Liveroles.DiscordRoleID,
+		Liveroles.DiscordGuildID,
+	).VALUES(
+		discordRoleId,
+		discordGuildId,
+	).ExecContext(ctx, l.txGetter.DefaultTxOrDB(ctx))
 	if err != nil {
 		return err // TODO: Wrap error
 	}
@@ -69,16 +61,9 @@ func (l *liverolePgx) GetLiveroles(
 	discordGuildId int64,
 ) ([]*domain.Liverole, error) {
 	var liveroles []*domain.Liverole
-	err := l.txm.Do(ctx, func(db qrm.DB) error {
-		err := liveroleSelect.WHERE(
-			Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId)),
-		).QueryContext(ctx, db, &liveroles)
-		if err != nil {
-			return err // TODO: Wrap error
-		}
-
-		return nil
-	})
+	err := liveroleSelect.WHERE(
+		Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId)),
+	).QueryContext(ctx, l.txGetter.DefaultTxOrDB(ctx), &liveroles)
 	if err != nil {
 		return nil, err // TODO: Wrap error
 	}
@@ -92,17 +77,10 @@ func (l *liverolePgx) GetLiverole(
 	discordRoleId int64,
 ) (*domain.Liverole, error) {
 	var liverole *domain.Liverole
-	err := l.txm.Do(ctx, func(db qrm.DB) error {
-		err := liveroleSelect.WHERE(
-			Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId)).
-				AND(Liveroles.DiscordRoleID.EQ(postgres.Int64(discordRoleId))),
-		).QueryContext(ctx, db, liverole)
-		if err != nil {
-			return err // TODO: Wrap error
-		}
-
-		return nil
-	})
+	err := liveroleSelect.WHERE(
+		Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId)).
+			AND(Liveroles.DiscordRoleID.EQ(postgres.Int64(discordRoleId))),
+	).QueryContext(ctx, l.txGetter.DefaultTxOrDB(ctx), liverole)
 	if err != nil {
 		return nil, err // TODO: Wrap error
 	}
@@ -119,17 +97,10 @@ func (l *liverolePgx) DeleteLiveroles(
 		return postgres.Int64(discordRoleId)
 	})
 
-	err := l.txm.Do(ctx, func(db qrm.DB) error {
-		_, err := Liveroles.DELETE().WHERE(
-			Liveroles.DiscordRoleID.IN(rolesExpr...).
-				AND(Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId))),
-		).ExecContext(ctx, db)
-		if err != nil {
-			return err // TODO: Wrap error
-		}
-
-		return nil
-	})
+	_, err := Liveroles.DELETE().WHERE(
+		Liveroles.DiscordRoleID.IN(rolesExpr...).
+			AND(Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId))),
+	).ExecContext(ctx, l.txGetter.DefaultTxOrDB(ctx))
 	if err != nil {
 		return err // TODO: Wrap error
 	}

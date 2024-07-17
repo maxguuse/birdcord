@@ -15,11 +15,15 @@ var (
 	ErrFunc = errors.New("func error")
 )
 
+type ctxKey struct{}
+
+var defaultCtxKey = ctxKey{}
+
 type TxManager struct {
 	defaultDb *sql.DB
 }
 
-func New(db *pgxpool.Pool) *TxManager {
+func NewManager(db *pgxpool.Pool) *TxManager {
 	return &TxManager{
 		defaultDb: stdlib.OpenDBFromPool(db),
 	}
@@ -27,7 +31,7 @@ func New(db *pgxpool.Pool) *TxManager {
 
 func (txm *TxManager) Do(
 	ctx context.Context,
-	f func(db qrm.DB) error,
+	f func(context.Context) error,
 ) error {
 	tx, err := txm.defaultDb.BeginTx(ctx, nil)
 	if err != nil {
@@ -38,9 +42,9 @@ func (txm *TxManager) Do(
 		)
 	}
 
-	defer tx.Rollback() //nolint
+	defer tx.Rollback() //nolint: errcheck
 
-	err = f(tx)
+	err = f(context.WithValue(ctx, defaultCtxKey, tx))
 
 	if err != nil {
 		return errors.Join(
@@ -59,4 +63,28 @@ func (txm *TxManager) Do(
 	}
 
 	return nil
+}
+
+type TxGetter struct {
+	txManager *TxManager
+}
+
+func NewGetter(txm *TxManager) *TxGetter {
+	return &TxGetter{
+		txManager: txm,
+	}
+}
+
+func (txg *TxGetter) DefaultTxOrDB(ctx context.Context) qrm.DB { //nolint: ireturn
+	val := ctx.Value(defaultCtxKey)
+	if val == nil {
+		return txg.txManager.defaultDb
+	}
+
+	tx, valid := val.(*sql.Tx)
+	if !valid {
+		return txg.txManager.defaultDb
+	}
+
+	return tx
 }

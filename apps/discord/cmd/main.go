@@ -34,7 +34,8 @@ func main() {
 
 				return pool
 			},
-			txmanager.New,
+			txmanager.NewManager,
+			txmanager.NewGetter,
 		),
 
 		modules.NewFx,

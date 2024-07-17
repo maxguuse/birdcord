@@ -8,18 +8,22 @@ import (
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/liverole/repository"
+	"github.com/maxguuse/birdcord/libs/jet/txmanager"
 	"github.com/samber/lo"
 )
 
 type Service struct {
-	repo repository.Repository
+	repo      repository.Repository
+	txManager *txmanager.TxManager
 }
 
 func New(
 	repo repository.Repository,
+	txManager *txmanager.TxManager,
 ) *Service {
 	return &Service{
-		repo: repo,
+		repo:      repo,
+		txManager: txManager,
 	}
 }
 
@@ -56,27 +60,35 @@ func (s *Service) Clear(ctx context.Context, discordGuildId string) error {
 		return errors.Join(domain.ErrInternal, err)
 	}
 
-	liveroles, err := s.repo.GetLiveroles(ctx, int64(guildId))
-	if err != nil {
+	err = s.txManager.Do(ctx, func(ctx context.Context) error {
+		liveroles, err := s.repo.GetLiveroles(ctx, int64(guildId))
+		if err != nil {
+			return errors.Join(domain.ErrInternal, err)
+		}
+
+		if len(liveroles) == 0 {
+			return ErrNoLiveroles
+		}
+
+		err = s.repo.DeleteLiveroles(
+			ctx,
+			int64(guildId),
+			lo.Map(liveroles, func(liverole *domain.Liverole, _ int) int64 {
+				return int64(liverole.DiscordRoleID)
+			}),
+		)
+		if err != nil {
+			return errors.Join(domain.ErrInternal, err)
+		}
+
+		return nil
+	})
+
+	if errors.Is(err, txmanager.ErrTx) {
 		return errors.Join(domain.ErrInternal, err)
 	}
 
-	if len(liveroles) == 0 {
-		return ErrNoLiveroles
-	}
-
-	err = s.repo.DeleteLiveroles(
-		ctx,
-		int64(guildId),
-		lo.Map(liveroles, func(liverole *domain.Liverole, _ int) int64 {
-			return int64(liverole.DiscordRoleID)
-		}),
-	)
-	if err != nil {
-		return errors.Join(domain.ErrInternal, err)
-	}
-
-	return nil
+	return err
 }
 
 func (s *Service) List(ctx context.Context, discordGuildId string) ([]string, error) {
