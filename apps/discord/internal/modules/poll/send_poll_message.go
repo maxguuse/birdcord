@@ -3,6 +3,7 @@ package poll
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
@@ -54,7 +55,7 @@ func (h *Handler) updatePollMessages(data *UpdatePollMessageData) error {
 		If(data.stop, make([]discordgo.MessageComponent, 0)).
 		Else(h.buildActionRows(data.poll, data.ctx.Interaction().ID))
 
-	author, err := data.ctx.Session().User(data.poll.Author.DiscordUserID)
+	author, err := data.ctx.Session().User(strconv.Itoa(data.poll.AuthorID))
 	if err != nil {
 		return err
 	}

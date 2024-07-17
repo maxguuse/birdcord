@@ -32,26 +32,16 @@ type liverolePgx struct {
 
 func (l *liverolePgx) CreateLiverole(
 	ctx context.Context,
-	discordGuildId string,
-	discordRoleId string,
+	discordGuildId int64,
+	discordRoleId int64,
 ) error {
 	err := l.txm.Do(ctx, func(db qrm.DB) error {
 		_, err := Liveroles.INSERT(
-			Liveroles.RoleID,
+			Liveroles.DiscordRoleID,
+			Liveroles.DiscordGuildID,
 		).VALUES(
-			postgres.SELECT(
-				Roles.ID,
-			).FROM(
-				Roles.LEFT_JOIN(
-					Guilds,
-					Roles.GuildID.EQ(Guilds.ID),
-				),
-			).WHERE(
-				Guilds.DiscordGuildID.
-					EQ(postgres.String(discordGuildId)).
-					AND(Roles.DiscordRoleID.
-						EQ(postgres.String(discordRoleId))),
-			),
+			discordRoleId,
+			discordGuildId,
 		).ExecContext(ctx, db)
 		if err != nil {
 			return err // TODO: Wrap error
@@ -67,23 +57,21 @@ func (l *liverolePgx) CreateLiverole(
 }
 
 var liveroleSelect = postgres.SELECT(
-	Liveroles.ID.AS("Liverole.Id"),
-	Guilds.ID.AS("Liverole.GuildId"),
-	Roles.ID.AS("Liverole.RoleId"),
-	Roles.DiscordRoleID.AS("Liverole.DiscordRoleId"),
-).FROM(Liveroles.
-	LEFT_JOIN(Roles, Liveroles.RoleID.EQ(Roles.ID)).
-	LEFT_JOIN(Guilds, Roles.GuildID.EQ(Guilds.ID)),
+	Liveroles.ID,
+	Liveroles.DiscordRoleID,
+	Liveroles.DiscordGuildID,
+).FROM(
+	Liveroles,
 )
 
 func (l *liverolePgx) GetLiveroles(
 	ctx context.Context,
-	discordGuildId string,
+	discordGuildId int64,
 ) ([]*domain.Liverole, error) {
 	var liveroles []*domain.Liverole
 	err := l.txm.Do(ctx, func(db qrm.DB) error {
 		err := liveroleSelect.WHERE(
-			Guilds.DiscordGuildID.EQ(postgres.String(discordGuildId)),
+			Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId)),
 		).QueryContext(ctx, db, &liveroles)
 		if err != nil {
 			return err // TODO: Wrap error
@@ -100,17 +88,15 @@ func (l *liverolePgx) GetLiveroles(
 
 func (l *liverolePgx) GetLiverole(
 	ctx context.Context,
-	discordGuildId string,
-	discordRoleId string,
+	discordGuildId int64,
+	discordRoleId int64,
 ) (*domain.Liverole, error) {
 	var liverole *domain.Liverole
 	err := l.txm.Do(ctx, func(db qrm.DB) error {
 		err := liveroleSelect.WHERE(
-			Guilds.DiscordGuildID.EQ(
-				postgres.String(discordGuildId),
-			).AND(Roles.DiscordRoleID.EQ(
-				postgres.String(discordRoleId)),
-			)).QueryContext(ctx, db, liverole)
+			Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId)).
+				AND(Liveroles.DiscordRoleID.EQ(postgres.Int64(discordRoleId))),
+		).QueryContext(ctx, db, liverole)
 		if err != nil {
 			return err // TODO: Wrap error
 		}
@@ -126,22 +112,17 @@ func (l *liverolePgx) GetLiverole(
 
 func (l *liverolePgx) DeleteLiveroles(
 	ctx context.Context,
-	discordGuildId string,
-	discordRolesIds []string,
+	discordGuildId int64,
+	discordRolesIds []int64,
 ) error {
-	rolesExpr := lo.Map(discordRolesIds, func(discordRoleId string, _ int) postgres.Expression {
-		return postgres.String(discordRoleId)
+	rolesExpr := lo.Map(discordRolesIds, func(discordRoleId int64, _ int) postgres.Expression {
+		return postgres.Int64(discordRoleId)
 	})
 
 	err := l.txm.Do(ctx, func(db qrm.DB) error {
-		_, err := Liveroles.DELETE().USING(
-			Roles,
-			Guilds,
-		).WHERE(
-			Liveroles.RoleID.EQ(Roles.ID).
-				AND(Roles.DiscordRoleID.IN(rolesExpr...)).
-				AND(Roles.GuildID.EQ(Guilds.ID)).
-				AND(Guilds.DiscordGuildID.EQ(postgres.String(discordGuildId))),
+		_, err := Liveroles.DELETE().WHERE(
+			Liveroles.DiscordRoleID.IN(rolesExpr...).
+				AND(Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId))),
 		).ExecContext(ctx, db)
 		if err != nil {
 			return err // TODO: Wrap error

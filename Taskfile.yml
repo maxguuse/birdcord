@@ -26,13 +26,10 @@ tasks:
   migrate:
     internal: true
     cmd: goose -dir libs/migrations/migrations postgres {{.CONNECTION_STRING}} {{.DIRECTION}}
-  generate:
-    desc: "Generate code for SQLC and gRPC"
-    aliases:
-      - gen
-    cmds:
-      - task: generate-sqlc
-      - task: generate-grpc
+  migration:
+    cmds: 
+      - goose -dir libs/migrations/migrations create {{.CLI_ARGS}}
+      - goose -dir libs/migrations/migrations fix
   generate-jet:
     desc: "Generate code for Jet SQL builder"
     aliases:

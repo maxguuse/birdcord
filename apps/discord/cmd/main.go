@@ -6,7 +6,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/maxguuse/birdcord/apps/discord/internal/client"
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules"
-	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/jet/txmanager"
 	"github.com/maxguuse/birdcord/libs/logger"
@@ -15,7 +14,7 @@ import (
 
 func main() {
 	fx.New(
-		fx.NopLogger,
+		// fx.NopLogger,
 		fx.Provide(
 			func() context.Context {
 				return context.Background()
@@ -38,7 +37,6 @@ func main() {
 			txmanager.New,
 		),
 
-		repository.NewFx,
 		modules.NewFx,
 
 		client.NewFx,

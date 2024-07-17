@@ -8,7 +8,8 @@
 package model
 
 type PollMessages struct {
-	ID        int32 `sql:"primary_key"`
-	MessageID int32
-	PollID    int32
+	ID               int32 `sql:"primary_key"`
+	PollID           int32
+	DiscordMessageID *int64
+	DiscordChannelID *int64
 }

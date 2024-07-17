@@ -28,12 +28,12 @@ func processPollOptions(rawOptions string) ([]string, error) {
 	return optionsList, nil
 }
 
-func validatePollAuthor(poll *domain.PollWithDetails, userId string, guildId string) error {
-	if poll.Author.DiscordUserID != userId {
+func validatePollAuthor(poll *domain.PollWithDetails, userId int64, guildId int64) error {
+	if poll.AuthorID != int(userId) {
 		return ErrNotAuthor
 	}
 
-	if poll.Guild.DiscordGuildID != guildId {
+	if poll.GuildID != int(guildId) {
 		return ErrNotFound
 	}
 

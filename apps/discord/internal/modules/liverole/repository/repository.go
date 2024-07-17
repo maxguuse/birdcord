@@ -9,21 +9,19 @@ import (
 type Repository interface {
 	CreateLiverole(
 		ctx context.Context,
-		discordGuildId string,
-		discordRoleId string,
+		discordGuildId, discordRoleId int64,
 	) error
 	GetLiveroles(
 		ctx context.Context,
-		discordGuildId string,
+		discordGuildId int64,
 	) ([]*domain.Liverole, error)
 	GetLiverole(
 		ctx context.Context,
-		discordGuildId string,
-		discordRoleId string,
+		discordGuildId, discordRoleId int64,
 	) (*domain.Liverole, error)
 	DeleteLiveroles(
 		ctx context.Context,
-		discordGuildId string,
-		discordRolesIds []string,
+		discordGuildId int64,
+		discordRolesIds []int64,
 	) error
 }

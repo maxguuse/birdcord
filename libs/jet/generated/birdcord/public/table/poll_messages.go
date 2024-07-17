@@ -17,9 +17,10 @@ type pollMessagesTable struct {
 	postgres.Table
 
 	// Columns
-	ID        postgres.ColumnInteger
-	MessageID postgres.ColumnInteger
-	PollID    postgres.ColumnInteger
+	ID               postgres.ColumnInteger
+	PollID           postgres.ColumnInteger
+	DiscordMessageID postgres.ColumnInteger
+	DiscordChannelID postgres.ColumnInteger
 
 	AllColumns     postgres.ColumnList
 	MutableColumns postgres.ColumnList
@@ -60,20 +61,22 @@ func newPollMessagesTable(schemaName, tableName, alias string) *PollMessagesTabl
 
 func newPollMessagesTableImpl(schemaName, tableName, alias string) pollMessagesTable {
 	var (
-		IDColumn        = postgres.IntegerColumn("id")
-		MessageIDColumn = postgres.IntegerColumn("message_id")
-		PollIDColumn    = postgres.IntegerColumn("poll_id")
-		allColumns      = postgres.ColumnList{IDColumn, MessageIDColumn, PollIDColumn}
-		mutableColumns  = postgres.ColumnList{MessageIDColumn, PollIDColumn}
+		IDColumn               = postgres.IntegerColumn("id")
+		PollIDColumn           = postgres.IntegerColumn("poll_id")
+		DiscordMessageIDColumn = postgres.IntegerColumn("discord_message_id")
+		DiscordChannelIDColumn = postgres.IntegerColumn("discord_channel_id")
+		allColumns             = postgres.ColumnList{IDColumn, PollIDColumn, DiscordMessageIDColumn, DiscordChannelIDColumn}
+		mutableColumns         = postgres.ColumnList{PollIDColumn, DiscordMessageIDColumn, DiscordChannelIDColumn}
 	)
 
 	return pollMessagesTable{
 		Table: postgres.NewTable(schemaName, tableName, alias, allColumns...),
 
 		//Columns
-		ID:        IDColumn,
-		MessageID: MessageIDColumn,
-		PollID:    PollIDColumn,
+		ID:               IDColumn,
+		PollID:           PollIDColumn,
+		DiscordMessageID: DiscordMessageIDColumn,
+		DiscordChannelID: DiscordChannelIDColumn,
 
 		AllColumns:     allColumns,
 		MutableColumns: mutableColumns,

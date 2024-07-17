@@ -8,7 +8,6 @@ import (
 	"github.com/go-jet/jet/v2/postgres"
 	"github.com/go-jet/jet/v2/qrm"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
-	"github.com/maxguuse/birdcord/libs/jet/generated/birdcord/public/model"
 	. "github.com/maxguuse/birdcord/libs/jet/generated/birdcord/public/table"
 	"github.com/maxguuse/birdcord/libs/jet/txmanager"
 	"go.uber.org/fx"
@@ -32,18 +31,9 @@ type pollsPgx struct {
 	txm *txmanager.TxManager
 }
 
-type CreatePollDest struct {
-	Poll model.Polls
-
-	Guild  model.Guilds
-	Author model.Users
-
-	Options []model.PollOptions
-}
-
 func (p *pollsPgx) CreatePoll(
 	ctx context.Context,
-	discordGuildId, discordAuthorId string,
+	discordGuildId, discordAuthorId int64,
 	title string,
 	pollOptions []string,
 ) (*domain.PollWithDetails, error) {
@@ -59,27 +49,15 @@ func (p *pollsPgx) CreatePoll(
 					Polls.GuildID,
 				).VALUES(
 					title,
-					postgres.
-						SELECT(Users.ID).FROM(Users).
-						WHERE(Users.DiscordUserID.EQ(postgres.String(discordAuthorId))),
-					postgres.
-						SELECT(Guilds.ID).FROM(Guilds).
-						WHERE(Guilds.DiscordGuildID.EQ(postgres.String(discordGuildId))),
+					discordAuthorId,
+					discordGuildId,
 				).RETURNING(Polls.AllColumns),
 			),
 		)(
 			postgres.SELECT(
 				insertedPoll.AllColumns(),
-				Guilds.AllColumns,
-				Users.AllColumns,
 			).FROM(
-				insertedPoll.LEFT_JOIN(
-					Guilds,
-					Polls.GuildID.From(insertedPoll).EQ(Guilds.ID),
-				).LEFT_JOIN(
-					Users,
-					Polls.AuthorID.From(insertedPoll).EQ(Users.ID),
-				),
+				insertedPoll,
 			),
 		).QueryContext(ctx, db, dest)
 		if err != nil {
@@ -119,28 +97,16 @@ func (p *pollsPgx) GetPollWithDetails(
 	err := p.txm.Do(ctx, func(db qrm.DB) error {
 		err := postgres.SELECT(
 			Polls.AllColumns,
-			Guilds.AllColumns,
-			Users.AllColumns,
 			PollOptions.AllColumns,
 			PollMessages.AllColumns,
-			Messages.AllColumns,
 			PollVotes.AllColumns,
 		).FROM(
 			Polls.LEFT_JOIN(
-				Guilds,
-				Polls.GuildID.EQ(Guilds.ID),
-			).LEFT_JOIN(
-				Users,
-				Polls.AuthorID.EQ(Users.ID),
-			).LEFT_JOIN(
 				PollOptions,
 				Polls.ID.EQ(PollOptions.PollID),
 			).LEFT_JOIN(
 				PollMessages,
 				Polls.ID.EQ(PollMessages.PollID),
-			).LEFT_JOIN(
-				Messages,
-				PollMessages.MessageID.EQ(Messages.ID),
 			).LEFT_JOIN(
 				PollVotes,
 				Polls.ID.EQ(PollVotes.PollID),
@@ -161,20 +127,100 @@ func (p *pollsPgx) GetPollWithDetails(
 	return dest, nil
 }
 
+func (p *pollsPgx) GetActivePolls(
+	ctx context.Context,
+	discordGuildId int64, discordAuthorId int64,
+) ([]*domain.Poll, error) {
+	dest := []*domain.Poll{}
+
+	err := p.txm.Do(ctx, func(db qrm.DB) error {
+		err := postgres.SELECT(
+			Polls.ID,
+			Polls.Title,
+			Polls.IsActive,
+			Polls.CreatedAt,
+		).FROM(
+			Polls,
+		).WHERE(
+			Polls.IsActive.EQ(postgres.Bool(true)).
+				AND(Polls.GuildID.EQ(postgres.Int64(discordGuildId))).
+				AND(Polls.AuthorID.EQ(postgres.Int64(discordAuthorId))),
+		).QueryContext(ctx, db, &dest)
+		if err != nil {
+			return err // TODO: Wrap error
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return dest, nil
+}
+
 func (p *pollsPgx) TryAddVote(
 	ctx context.Context,
-	discordUserId string,
+	discordUserId int64,
 	pollId, optionId int,
 ) (*domain.PollVote, error) {
-	panic("TODO: Implement")
+	dest := &domain.PollVote{}
+
+	err := p.txm.Do(ctx, func(db qrm.DB) error {
+		err := PollVotes.INSERT(
+			PollVotes.UserID,
+			PollVotes.PollID,
+			PollVotes.OptionID,
+		).VALUES(
+			discordUserId,
+			pollId,
+			optionId,
+		).RETURNING(
+			PollVotes.AllColumns,
+		).QueryContext(ctx, db, dest)
+		if err != nil {
+			return err // TODO: Wrap error
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err // TODO: Wrap error
+	}
+
+	return dest, nil
 }
 
 func (p *pollsPgx) CreatePollMessage(
 	ctx context.Context,
-	discordMessageId, discordChannelId string,
+	discordMessageId, discordChannelId int64,
 	pollId int,
 ) (*domain.PollMessage, error) {
-	panic("TODO: Implement")
+	dest := &domain.PollMessage{}
+
+	err := p.txm.Do(ctx, func(db qrm.DB) error {
+		err := PollMessages.INSERT(
+			PollMessages.PollID,
+			PollMessages.DiscordMessageID,
+			PollMessages.DiscordChannelID,
+		).VALUES(
+			pollId,
+			discordMessageId,
+			discordChannelId,
+		).RETURNING(
+			PollMessages.AllColumns,
+		).QueryContext(ctx, db, dest)
+		if err != nil {
+			return err // TODO: Wrap error
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err // TODO: Wrap error
+	}
+
+	return dest, nil
 }
 
 func (p *pollsPgx) UpdatePollStatus(
@@ -182,14 +228,25 @@ func (p *pollsPgx) UpdatePollStatus(
 	pollId int,
 	isActive bool,
 ) error {
-	panic("TODO: Implement")
-}
+	err := p.txm.Do(ctx, func(db qrm.DB) error {
+		_, err := Polls.UPDATE(
+			Polls.IsActive,
+		).SET(
+			isActive,
+		).WHERE(
+			Polls.ID.EQ(postgres.Int(int64(pollId))),
+		).ExecContext(ctx, db)
+		if err != nil {
+			return err // TODO: Wrap error
+		}
 
-func (p *pollsPgx) GetActivePolls(
-	ctx context.Context,
-	discordGuildId, discordAuthorId string,
-) ([]*domain.Poll, error) {
-	panic("TODO: Implement")
+		return nil
+	})
+	if err != nil {
+		return err // TODO: Wrap error
+	}
+
+	return nil
 }
 
 func (p *pollsPgx) AddPollOption(
@@ -197,14 +254,52 @@ func (p *pollsPgx) AddPollOption(
 	pollId int,
 	pollOption string,
 ) (*domain.PollOption, error) {
-	panic("TODO: Implement")
+	dest := &domain.PollOption{}
+
+	err := p.txm.Do(ctx, func(db qrm.DB) error {
+		err := PollOptions.INSERT(
+			PollOptions.Title,
+			PollOptions.PollID,
+		).VALUES(
+			pollOption,
+			pollId,
+		).RETURNING(
+			PollOptions.AllColumns,
+		).QueryContext(ctx, db, dest)
+		if err != nil {
+			return err // TODO: Wrap error
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err // TODO: Wrap error
+	}
+
+	return dest, nil
 }
 
 func (p *pollsPgx) RemovePollOption(
 	ctx context.Context,
 	optionId int,
 ) error {
-	panic("TODO: Implement")
+	err := p.txm.Do(ctx, func(db qrm.DB) error {
+		_, err := PollOptions.
+			DELETE().
+			WHERE(
+				PollOptions.ID.EQ(postgres.Int(int64(optionId))),
+			).ExecContext(ctx, db)
+		if err != nil {
+			return err // TODO: Wrap error
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err // TODO: Wrap error
+	}
+
+	return nil
 }
 
 var quoteArrayReplacer = strings.NewReplacer(`\`, `\\`, `"`, `\"`)

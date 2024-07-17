@@ -16,6 +16,6 @@ type Polls struct {
 	Title     string
 	IsActive  bool
 	CreatedAt *time.Time
-	GuildID   int32
-	AuthorID  *int32
+	GuildID   *int64
+	AuthorID  *int64
 }

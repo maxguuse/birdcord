@@ -17,8 +17,9 @@ type liverolesTable struct {
 	postgres.Table
 
 	// Columns
-	ID     postgres.ColumnInteger
-	RoleID postgres.ColumnInteger
+	ID             postgres.ColumnInteger
+	DiscordRoleID  postgres.ColumnInteger
+	DiscordGuildID postgres.ColumnInteger
 
 	AllColumns     postgres.ColumnList
 	MutableColumns postgres.ColumnList
@@ -59,18 +60,20 @@ func newLiverolesTable(schemaName, tableName, alias string) *LiverolesTable {
 
 func newLiverolesTableImpl(schemaName, tableName, alias string) liverolesTable {
 	var (
-		IDColumn       = postgres.IntegerColumn("id")
-		RoleIDColumn   = postgres.IntegerColumn("role_id")
-		allColumns     = postgres.ColumnList{IDColumn, RoleIDColumn}
-		mutableColumns = postgres.ColumnList{RoleIDColumn}
+		IDColumn             = postgres.IntegerColumn("id")
+		DiscordRoleIDColumn  = postgres.IntegerColumn("discord_role_id")
+		DiscordGuildIDColumn = postgres.IntegerColumn("discord_guild_id")
+		allColumns           = postgres.ColumnList{IDColumn, DiscordRoleIDColumn, DiscordGuildIDColumn}
+		mutableColumns       = postgres.ColumnList{DiscordRoleIDColumn, DiscordGuildIDColumn}
 	)
 
 	return liverolesTable{
 		Table: postgres.NewTable(schemaName, tableName, alias, allColumns...),
 
 		//Columns
-		ID:     IDColumn,
-		RoleID: RoleIDColumn,
+		ID:             IDColumn,
+		DiscordRoleID:  DiscordRoleIDColumn,
+		DiscordGuildID: DiscordGuildIDColumn,
 
 		AllColumns:     allColumns,
 		MutableColumns: mutableColumns,

@@ -9,7 +9,7 @@ import (
 type Repository interface {
 	CreatePoll(
 		ctx context.Context,
-		discordGuildId, discordAuthorId string,
+		discordGuildId, discordAuthorId int64,
 		title string, pollOptions []string,
 	) (*domain.PollWithDetails, error)
 	GetPollWithDetails(
@@ -18,12 +18,12 @@ type Repository interface {
 	) (*domain.PollWithDetails, error)
 	TryAddVote(
 		ctx context.Context,
-		discordUserId string,
+		discordUserId int64,
 		pollId, optionId int,
 	) (*domain.PollVote, error)
 	CreatePollMessage(
 		ctx context.Context,
-		discordMessageId, discordChannelId string,
+		discordMessageId, discordChannelId int64,
 		pollId int,
 	) (*domain.PollMessage, error)
 	UpdatePollStatus(
@@ -33,7 +33,7 @@ type Repository interface {
 	) error
 	GetActivePolls(
 		ctx context.Context,
-		discordGuildId, discordAuthorId string,
+		discordGuildId, discordAuthorId int64,
 	) ([]*domain.Poll, error)
 	AddPollOption(
 		ctx context.Context,

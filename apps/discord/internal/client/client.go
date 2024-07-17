@@ -8,7 +8,6 @@ import (
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules"
 	lrrepo "github.com/maxguuse/birdcord/apps/discord/internal/modules/liverole/repository"
-	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
 	"github.com/maxguuse/disroute"
@@ -20,7 +19,6 @@ type Client struct {
 	logger logger.Logger
 	cfg    *config.Config
 
-	db     repository.DB
 	lrRepo lrrepo.Repository
 }
 
@@ -32,7 +30,6 @@ type ClientOpts struct {
 	Cfg    *config.Config
 	Logger logger.Logger
 
-	Database      repository.DB
 	LiverolesRepo lrrepo.Repository
 }
 
@@ -49,7 +46,6 @@ func New(opts ClientOpts) error {
 		logger: opts.Logger,
 		cfg:    opts.Cfg,
 
-		db:     opts.Database,
 		lrRepo: opts.LiverolesRepo,
 	}
 

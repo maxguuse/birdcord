@@ -3,33 +3,45 @@ package service
 import (
 	"context"
 	"errors"
+	"strconv"
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
-	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/repository"
 	"github.com/samber/lo"
 )
 
 type Service struct {
-	db repository.DB
+	repo repository.Repository
 }
 
-func New(db repository.DB) *Service {
+func New(
+	repo repository.Repository,
+) *Service {
 	return &Service{
-		db: db,
+		repo: repo,
 	}
 }
 
 func (s *Service) GetPoll(ctx context.Context, r *GetPollRequest) (*domain.PollWithDetails, error) {
-	var repoErr *repository.NotFoundError
-	poll, err := s.db.Polls().GetPollWithDetails(ctx, int(r.PollID))
-	if errors.As(err, &repoErr) {
+	poll, err := s.repo.GetPollWithDetails(ctx, int(r.PollID))
+	if errors.Is(err, repository.ErrNotFound) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	if err := validatePollAuthor(poll, r.UserID, r.GuildID); err != nil {
+	guildId, err := strconv.Atoi(r.GuildID)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	userId, err := strconv.Atoi(r.UserID)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	if err := validatePollAuthor(poll, int64(userId), int64(guildId)); err != nil {
 		return nil, err
 	}
 
@@ -37,17 +49,17 @@ func (s *Service) GetPoll(ctx context.Context, r *GetPollRequest) (*domain.PollW
 }
 
 func (s *Service) GetActivePolls(ctx context.Context, r *GetActivePollsRequest) ([]*domain.Poll, error) {
-	guild, err := s.db.Guilds().GetGuildByDiscordID(ctx, r.GuildID)
+	guildId, err := strconv.Atoi(r.GuildID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	user, err := s.db.Users().GetUserByDiscordID(ctx, r.UserID)
+	userId, err := strconv.Atoi(r.UserID)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	polls, err := s.db.Polls().GetActivePolls(ctx, guild.ID, user.ID)
+	polls, err := s.repo.GetActivePolls(ctx, int64(guildId), int64(userId))
 	if err != nil {
 		return nil, err
 	}
@@ -61,21 +73,21 @@ func (s *Service) Create(ctx context.Context, r *CreateRequest) (*domain.PollWit
 		return nil, err
 	}
 
-	guild, err := s.db.Guilds().GetGuildByDiscordID(ctx, r.GuildID)
+	guildId, err := strconv.Atoi(r.GuildID)
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	user, err := s.db.Users().GetUserByDiscordID(ctx, r.UserID)
+	authorId, err := strconv.Atoi(r.UserID)
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	poll, err := s.db.Polls().CreatePoll(
+	poll, err := s.repo.CreatePoll(
 		ctx,
+		int64(guildId),
+		int64(authorId),
 		r.Poll.Title,
-		guild.ID,
-		user.ID,
 		optionsList,
 	)
 	if err != nil {
@@ -88,16 +100,25 @@ func (s *Service) Create(ctx context.Context, r *CreateRequest) (*domain.PollWit
 func (s *Service) Stop(ctx context.Context, r *StopRequest) (*StopResponse, error) {
 	optionsWithVotes := make(map[domain.PollOption]int)
 
-	var repoErr *repository.NotFoundError
-	poll, err := s.db.Polls().GetPollWithDetails(ctx, int(r.PollID)) // Pass Guild ID as well
-	if errors.As(err, &repoErr) {
+	poll, err := s.repo.GetPollWithDetails(ctx, int(r.PollID)) // Pass Guild ID as well
+	if errors.Is(err, repository.ErrNotFound) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	if err := validatePollAuthor(poll, r.UserID, r.GuildID); err != nil {
+	guildId, err := strconv.Atoi(r.GuildID)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	userId, err := strconv.Atoi(r.UserID)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	if err := validatePollAuthor(poll, int64(userId), int64(guildId)); err != nil {
 		return nil, err
 	}
 
@@ -118,7 +139,7 @@ func (s *Service) Stop(ctx context.Context, r *StopRequest) (*StopResponse, erro
 		return o.Title, optionsWithVotes[o] == maxVotes
 	})
 
-	err = s.db.Polls().UpdatePollStatus(ctx, int(r.PollID), false)
+	err = s.repo.UpdatePollStatus(ctx, int(r.PollID), false)
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
@@ -132,16 +153,25 @@ func (s *Service) Stop(ctx context.Context, r *StopRequest) (*StopResponse, erro
 func (s *Service) AddOption(ctx context.Context, r *AddOptionRequest) (*domain.PollWithDetails, error) {
 	pollId := r.PollID
 
-	var repoErr *repository.NotFoundError
-	poll, err := s.db.Polls().GetPollWithDetails(ctx, int(pollId))
-	if errors.As(err, &repoErr) {
+	poll, err := s.repo.GetPollWithDetails(ctx, int(pollId))
+	if errors.Is(err, repository.ErrNotFound) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	if err := validatePollAuthor(poll, r.UserID, r.GuildID); err != nil {
+	guildId, err := strconv.Atoi(r.GuildID)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	userId, err := strconv.Atoi(r.UserID)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	if err := validatePollAuthor(poll, int64(userId), int64(guildId)); err != nil {
 		return nil, err
 	}
 
@@ -149,7 +179,7 @@ func (s *Service) AddOption(ctx context.Context, r *AddOptionRequest) (*domain.P
 		return nil, ErrTooManyOptions
 	}
 
-	newOption, err := s.db.Polls().AddPollOption(ctx, int(pollId), r.Option)
+	newOption, err := s.repo.AddPollOption(ctx, int(pollId), r.Option)
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
@@ -163,16 +193,25 @@ func (s *Service) RemoveOption(ctx context.Context, r *RemoveOptionRequest) (*do
 	pollId := r.PollID
 	optionId := r.OptionID
 
-	var repoErr *repository.NotFoundError
-	poll, err := s.db.Polls().GetPollWithDetails(ctx, int(pollId))
-	if errors.As(err, &repoErr) {
+	poll, err := s.repo.GetPollWithDetails(ctx, int(pollId))
+	if errors.Is(err, repository.ErrNotFound) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	if err := validatePollAuthor(poll, r.UserID, r.GuildID); err != nil {
+	guildId, err := strconv.Atoi(r.GuildID)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	userId, err := strconv.Atoi(r.UserID)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	if err := validatePollAuthor(poll, int64(userId), int64(guildId)); err != nil {
 		return nil, err
 	}
 
@@ -188,7 +227,7 @@ func (s *Service) RemoveOption(ctx context.Context, r *RemoveOptionRequest) (*do
 		return nil, ErrTooFewOptions
 	}
 
-	err = s.db.Polls().RemovePollOption(ctx, int(optionId))
+	err = s.repo.RemovePollOption(ctx, int(optionId))
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
@@ -206,17 +245,17 @@ func (s *Service) AddVote(ctx context.Context, r *AddVoteRequest) (*domain.PollW
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	user, err := s.db.Users().GetUserByDiscordID(ctx, r.UserID)
+	poll, err := s.repo.GetPollWithDetails(ctx, vote.PollId)
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	poll, err := s.db.Polls().GetPollWithDetails(ctx, vote.PollId)
+	userId, err := strconv.Atoi(r.UserID)
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
 
-	newVote, err := s.db.Polls().TryAddVote(ctx, user.ID, poll.ID, vote.OptionId)
+	newVote, err := s.repo.TryAddVote(ctx, int64(userId), poll.ID, vote.OptionId)
 	if errors.Is(err, repository.ErrAlreadyExists) {
 		return nil, &domain.UsersideError{
 			Msg: "Вы уже проголосовали в этом опросе.",
@@ -233,8 +272,18 @@ func (s *Service) AddVote(ctx context.Context, r *AddVoteRequest) (*domain.PollW
 }
 
 func (s *Service) CreateMessage(ctx context.Context, r *CreateMessageRequest) error {
-	_, err := s.db.Polls().CreatePollMessage(
-		ctx, r.Message.ID, r.Message.ChannelID, r.PollID,
+	messageId, err := strconv.Atoi(r.Message.ID)
+	if err != nil {
+		return errors.Join(domain.ErrInternal, err)
+	}
+
+	channelId, err := strconv.Atoi(r.Message.ChannelID)
+	if err != nil {
+		return errors.Join(domain.ErrInternal, err)
+	}
+
+	_, err = s.repo.CreatePollMessage(
+		ctx, int64(messageId), int64(channelId), r.PollID,
 	)
 
 	return err

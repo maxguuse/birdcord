@@ -8,6 +8,7 @@
 package model
 
 type Liveroles struct {
-	ID     int32 `sql:"primary_key"`
-	RoleID int32
+	ID             int32 `sql:"primary_key"`
+	DiscordRoleID  *int64
+	DiscordGuildID *int64
 }

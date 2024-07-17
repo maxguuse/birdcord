@@ -10,13 +10,9 @@ package table
 // UseSchema sets a new schema name for all generated table SQL builder types. It is recommended to invoke
 // this method only once at the beginning of the program.
 func UseSchema(schema string) {
-	Guilds = Guilds.FromSchema(schema)
 	Liveroles = Liveroles.FromSchema(schema)
-	Messages = Messages.FromSchema(schema)
 	PollMessages = PollMessages.FromSchema(schema)
 	PollOptions = PollOptions.FromSchema(schema)
 	PollVotes = PollVotes.FromSchema(schema)
 	Polls = Polls.FromSchema(schema)
-	Roles = Roles.FromSchema(schema)
-	Users = Users.FromSchema(schema)
 }

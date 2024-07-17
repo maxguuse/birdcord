@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"log/slog"
+	"strconv"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/bwmarrin/discordgo"
@@ -38,7 +39,9 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 		return a.Type == discordgo.ActivityTypeStreaming
 	})
 
-	roles, err := c.lrRepo.GetLiveroles(ctx, u.GuildID)
+	guildId, err := strconv.Atoi(u.GuildID)
+
+	roles, err := c.lrRepo.GetLiveroles(ctx, int64(guildId))
 	if err != nil {
 		c.logger.Error("could not give streaming role", err)
 	}
@@ -65,17 +68,17 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 		return
 	}
 
-	liverolesIds := lo.Map(roles, func(role *domain.Liverole, _ int) string { return role.DiscordRoleID })
+	liverolesIds := lo.Map(roles, func(role *domain.Liverole, _ int) string { return strconv.Itoa(role.DiscordRoleID) })
 	memberRolesIds := member.Roles
 
 	if isStreaming {
 		for _, role := range roles {
-			err = c.router.Session().GuildMemberRoleAdd(u.GuildID, u.User.ID, role.DiscordRoleID)
+			err = c.router.Session().GuildMemberRoleAdd(u.GuildID, u.User.ID, strconv.Itoa(role.DiscordRoleID))
 			if err != nil {
 				c.logger.Error("could not add role", err)
 			}
 			c.logger.Debug("Role added",
-				slog.String("role", role.DiscordRoleID),
+				slog.Int("role", role.DiscordRoleID),
 				slog.String("user", u.Presence.User.ID),
 			)
 		}

@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/liverole/repository"
-	db "github.com/maxguuse/birdcord/apps/discord/internal/repository"
 	"github.com/samber/lo"
 )
 
@@ -24,10 +24,24 @@ func New(
 }
 
 func (s *Service) Add(ctx context.Context, r *AddLiveRoleRequest) error {
-	err := s.repo.CreateLiverole(ctx, r.GuildID, r.RoleID)
+	guildId, err := strconv.Atoi(r.GuildID)
 	if err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			return ErrRoleAlreadyExists // TODO: Add this error to repository
+		return errors.Join(domain.ErrInternal, err)
+	}
+
+	roleId, err := strconv.Atoi(r.RoleID)
+	if err != nil {
+		return errors.Join(domain.ErrInternal, err)
+	}
+
+	err = s.repo.CreateLiverole(
+		ctx,
+		int64(guildId),
+		int64(roleId),
+	)
+	if err != nil {
+		if errors.Is(err, repository.ErrRoleAlreadyExists) {
+			return ErrRoleAlreadyExists
 		}
 
 		return errors.Join(domain.ErrInternal, err)
@@ -36,8 +50,13 @@ func (s *Service) Add(ctx context.Context, r *AddLiveRoleRequest) error {
 	return nil
 }
 
-func (s *Service) Clear(ctx context.Context, guildID string) error {
-	liveroles, err := s.repo.GetLiveroles(ctx, guildID)
+func (s *Service) Clear(ctx context.Context, discordGuildId string) error {
+	guildId, err := strconv.Atoi(discordGuildId)
+	if err != nil {
+		return errors.Join(domain.ErrInternal, err)
+	}
+
+	liveroles, err := s.repo.GetLiveroles(ctx, int64(guildId))
 	if err != nil {
 		return errors.Join(domain.ErrInternal, err)
 	}
@@ -48,9 +67,9 @@ func (s *Service) Clear(ctx context.Context, guildID string) error {
 
 	err = s.repo.DeleteLiveroles(
 		ctx,
-		guildID,
-		lo.Map(liveroles, func(liverole *domain.Liverole, _ int) string {
-			return liverole.DiscordRoleID
+		int64(guildId),
+		lo.Map(liveroles, func(liverole *domain.Liverole, _ int) int64 {
+			return int64(liverole.DiscordRoleID)
 		}),
 	)
 	if err != nil {
@@ -60,8 +79,13 @@ func (s *Service) Clear(ctx context.Context, guildID string) error {
 	return nil
 }
 
-func (s *Service) List(ctx context.Context, guildID string) ([]string, error) {
-	liveroles, err := s.repo.GetLiveroles(ctx, guildID)
+func (s *Service) List(ctx context.Context, discordGuildId string) ([]string, error) {
+	guildId, err := strconv.Atoi(discordGuildId)
+	if err != nil {
+		return nil, errors.Join(domain.ErrInternal, err)
+	}
+
+	liveroles, err := s.repo.GetLiveroles(ctx, int64(guildId))
 	if err != nil {
 		return nil, errors.Join(domain.ErrInternal, err)
 	}
@@ -71,14 +95,24 @@ func (s *Service) List(ctx context.Context, guildID string) ([]string, error) {
 	}
 
 	rolesList := lo.Map(liveroles, func(liverole *domain.Liverole, _ int) string {
-		return fmt.Sprintf("<@&%s>", liverole.DiscordRoleID)
+		return fmt.Sprintf("<@&%d>", liverole.DiscordRoleID)
 	})
 
 	return rolesList, nil
 }
 
 func (s *Service) Remove(ctx context.Context, r *RemoveLiveRoleRequest) error {
-	err := s.repo.DeleteLiveroles(ctx, r.GuildID, []string{r.RoleID})
+	guildId, err := strconv.Atoi(r.GuildID)
+	if err != nil {
+		return errors.Join(domain.ErrInternal, err)
+	}
+
+	roleId, err := strconv.Atoi(r.RoleID)
+	if err != nil {
+		return errors.Join(domain.ErrInternal, err)
+	}
+
+	err = s.repo.DeleteLiveroles(ctx, int64(guildId), []int64{int64(roleId)})
 	if err != nil {
 		return errors.Join(domain.ErrInternal, err)
 	}

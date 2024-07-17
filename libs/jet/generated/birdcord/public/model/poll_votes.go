@@ -11,5 +11,5 @@ type PollVotes struct {
 	ID       int32 `sql:"primary_key"`
 	PollID   int32
 	OptionID int32
-	UserID   int32
+	UserID   *int64
 }
