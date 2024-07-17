@@ -13,7 +13,6 @@ import (
 func (c *Client) registerHandlers() {
 	c.router.Session().AddHandler(c.router.InteractionHandler)
 
-	c.router.Session().AddHandler(c.onMessageDelete)
 	c.router.Session().AddHandler(c.onReady)
 	c.router.Session().AddHandler(c.onConnect)
 	c.router.Session().AddHandler(c.onDisconnect)
