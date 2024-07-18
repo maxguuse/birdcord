@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/samber/lo"
 )
 
@@ -15,7 +16,7 @@ func (c *Client) onReady(_ *discordgo.Session, r *discordgo.Ready) {
 	)
 
 	customStatus := lo.If(
-		c.cfg.Environment == "prod",
+		c.cfg.Environment == config.EnvProduction,
 		"Release "+c.cfg.Version,
 	).Else("Смотрит как Гусь кодит 💻")
 

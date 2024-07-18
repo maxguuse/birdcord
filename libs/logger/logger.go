@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/rs/zerolog"
 	slogzerolog "github.com/samber/slog-zerolog/v2"
 )
@@ -54,7 +55,7 @@ func newLogger(service string) Logger { //nolint: ireturn
 		return attr
 	}
 
-	if env := os.Getenv("ENVIRONMENT"); env == "prod" {
+	if env := os.Getenv("ENVIRONMENT"); env == config.EnvProduction {
 		log = slog.New(
 			slog.NewJSONHandler(
 				os.Stdout,

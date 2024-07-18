@@ -5,9 +5,10 @@ import (
 	"log/slog"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules"
-	lrrepo "github.com/maxguuse/birdcord/apps/discord/internal/modules/liverole/repository"
+	lrservice "github.com/maxguuse/birdcord/apps/discord/internal/modules/liverole/service"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
 	"github.com/maxguuse/disroute"
@@ -19,7 +20,8 @@ type Client struct {
 	logger logger.Logger
 	cfg    *config.Config
 
-	lrRepo lrrepo.Repository
+	redisC *redis.Client
+	lrserv *lrservice.Service
 }
 
 type ClientOpts struct {
@@ -30,7 +32,8 @@ type ClientOpts struct {
 	Cfg    *config.Config
 	Logger logger.Logger
 
-	LiverolesRepo lrrepo.Repository
+	Redis         *redis.Client
+	LiverolesServ *lrservice.Service
 }
 
 func New(opts ClientOpts) error {
@@ -46,10 +49,11 @@ func New(opts ClientOpts) error {
 		logger: opts.Logger,
 		cfg:    opts.Cfg,
 
-		lrRepo: opts.LiverolesRepo,
+		redisC: opts.Redis,
+		lrserv: opts.LiverolesServ,
 	}
 
-	if opts.Cfg.Environment != "prod" {
+	if opts.Cfg.Environment != config.EnvProduction {
 		router.Use(func(hf disroute.HandlerFunc) disroute.HandlerFunc {
 			return func(ctx *disroute.Ctx) disroute.Response {
 				c.logger.Debug("interaction",
