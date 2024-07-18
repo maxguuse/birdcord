@@ -5,14 +5,26 @@ services:
       - '8085:8080'
     env_file:
       - .env
+    networks:
+      - birdcord
   db:
     image: postgres:15-alpine
-    ports:
-      - "5432:5432"
+    restart: unless-stopped
     env_file:
       - .env
     volumes:
       - pg-data:/var/lib/postgresql/data
+    networks:
+      - birdcord
+  redis:
+    image: redis/redis-stack-server:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - redis-data:/data
+    networks:
+      - birdcord
   migrations:
     image: maxgus/birdcord:migrations-latest
     environment:
@@ -22,6 +34,8 @@ services:
       restart_policy:
         condition: on-failure
         max_attempts: 15
+    networks:
+      - birdcord
   discord:
     image: maxgus/birdcord:discord-latest
     env_file:
@@ -30,6 +44,13 @@ services:
       restart_policy:
         condition: on-failure
         max_attempts: 15
+    networks:
+      - birdcord
 
 volumes:
   pg-data:
+  redis-data:
+
+networks:
+  birdcord:
+    driver: bridge
