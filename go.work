@@ -1,9 +1,9 @@
-go 1.21.5
+go 1.22.2
 
 use (
 	./apps/discord
 	./libs/config
+	./libs/jet
 	./libs/logger
 	./libs/migrations
-	./libs/sqlc
 )

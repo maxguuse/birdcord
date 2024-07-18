@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"log/slog"
+	"strconv"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/bwmarrin/discordgo"
@@ -13,7 +14,6 @@ import (
 func (c *Client) registerHandlers() {
 	c.router.Session().AddHandler(c.router.InteractionHandler)
 
-	c.router.Session().AddHandler(c.onMessageDelete)
 	c.router.Session().AddHandler(c.onReady)
 	c.router.Session().AddHandler(c.onConnect)
 	c.router.Session().AddHandler(c.onDisconnect)
@@ -39,12 +39,15 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 		return a.Type == discordgo.ActivityTypeStreaming
 	})
 
-	guild, err := c.db.Guilds().GetGuildByDiscordID(ctx, u.GuildID)
+	guildId, err := strconv.Atoi(u.GuildID)
 	if err != nil {
-		c.logger.Error("could not get guild", err)
+		c.logger.Error("could not convert guild id from string to int",
+			slog.Any("error", err),
+			slog.String("guild_id", u.GuildID),
+		)
 	}
 
-	roles, err := c.db.Liveroles().GetLiveroles(ctx, guild.ID)
+	roles, err := c.lrRepo.GetLiveroles(ctx, int64(guildId))
 	if err != nil {
 		c.logger.Error("could not give streaming role", err)
 	}
@@ -71,17 +74,17 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 		return
 	}
 
-	liverolesIds := lo.Map(roles, func(role *domain.Liverole, _ int) string { return role.DiscordRoleID })
+	liverolesIds := lo.Map(roles, func(role *domain.Liverole, _ int) string { return strconv.Itoa(role.DiscordRoleID) })
 	memberRolesIds := member.Roles
 
 	if isStreaming {
 		for _, role := range roles {
-			err = c.router.Session().GuildMemberRoleAdd(u.GuildID, u.User.ID, role.DiscordRoleID)
+			err = c.router.Session().GuildMemberRoleAdd(u.GuildID, u.User.ID, strconv.Itoa(role.DiscordRoleID))
 			if err != nil {
 				c.logger.Error("could not add role", err)
 			}
 			c.logger.Debug("Role added",
-				slog.String("role", role.DiscordRoleID),
+				slog.Int("role", role.DiscordRoleID),
 				slog.String("user", u.Presence.User.ID),
 			)
 		}
@@ -95,9 +98,4 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 			}
 		}
 	}
-
-	// c.logger.Debug("Status changed",
-	// 	slog.String("user", u.Presence.User.ID),
-	// 	slog.String("status", string(u.Status)),
-	// )
 }

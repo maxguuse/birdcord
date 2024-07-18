@@ -7,7 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules"
-	"github.com/maxguuse/birdcord/apps/discord/internal/repository"
+	lrrepo "github.com/maxguuse/birdcord/apps/discord/internal/modules/liverole/repository"
 	"github.com/maxguuse/birdcord/libs/config"
 	"github.com/maxguuse/birdcord/libs/logger"
 	"github.com/maxguuse/disroute"
@@ -19,7 +19,7 @@ type Client struct {
 	logger logger.Logger
 	cfg    *config.Config
 
-	db repository.DB
+	lrRepo lrrepo.Repository
 }
 
 type ClientOpts struct {
@@ -30,7 +30,7 @@ type ClientOpts struct {
 	Cfg    *config.Config
 	Logger logger.Logger
 
-	Database repository.DB
+	LiverolesRepo lrrepo.Repository
 }
 
 func New(opts ClientOpts) error {
@@ -46,7 +46,7 @@ func New(opts ClientOpts) error {
 		logger: opts.Logger,
 		cfg:    opts.Cfg,
 
-		db: opts.Database,
+		lrRepo: opts.LiverolesRepo,
 	}
 
 	router.Use(func(hf disroute.HandlerFunc) disroute.HandlerFunc {

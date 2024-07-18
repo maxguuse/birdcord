@@ -2,6 +2,7 @@ package poll
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/repository"
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll/service"
 	"github.com/maxguuse/birdcord/libs/logger"
 	"github.com/maxguuse/disroute"
@@ -11,6 +12,7 @@ import (
 
 var NewFx = fx.Options(
 	fx.Provide(
+		fx.Annotate(repository.NewPgx, fx.As(new(repository.Repository))),
 		service.New,
 
 		NewHandler,
