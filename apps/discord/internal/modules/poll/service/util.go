@@ -28,12 +28,22 @@ func processPollOptions(rawOptions string) ([]string, error) {
 	return optionsList, nil
 }
 
-func validatePollAuthor(poll *domain.PollWithDetails, userId int64, guildId int64) error {
-	if poll.AuthorID != int(userId) {
+func validatePollAuthor(poll *domain.PollWithDetails, userId string, guildId string) error {
+	intGuildId, err := strconv.Atoi(guildId)
+	if err != nil {
+		return errors.Join(domain.ErrInternal, err)
+	}
+
+	intUserId, err := strconv.Atoi(userId)
+	if err != nil {
+		return errors.Join(domain.ErrInternal, err)
+	}
+
+	if poll.AuthorID != intUserId {
 		return ErrNotAuthor
 	}
 
-	if poll.GuildID != int(guildId) {
+	if poll.GuildID != intGuildId {
 		return ErrNotFound
 	}
 

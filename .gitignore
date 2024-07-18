@@ -1,5 +1,6 @@
 .task
 .bin
+.vscode/settings.json
 
 !.env.example
 *.env

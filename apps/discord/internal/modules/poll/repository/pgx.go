@@ -8,6 +8,7 @@ import (
 	"github.com/go-jet/jet/v2/postgres"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	. "github.com/maxguuse/birdcord/libs/jet/generated/birdcord/public/table"
+	"github.com/maxguuse/birdcord/libs/jet/pgerrors"
 	"github.com/maxguuse/birdcord/libs/jet/txmanager"
 	"go.uber.org/fx"
 )
@@ -74,8 +75,9 @@ func (p *pollsPgx) CreatePoll(
 			),
 		),
 	).QueryContext(ctx, p.txGetter.DefaultTxOrDB(ctx), dest)
-	if err != nil {
-		return nil, err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return nil, pgerr
 	}
 
 	return dest, nil
@@ -106,8 +108,9 @@ func (p *pollsPgx) GetPollWithDetails(
 	).WHERE(
 		Polls.ID.EQ(postgres.Int(int64(pollId))),
 	).QueryContext(ctx, p.txGetter.DefaultTxOrDB(ctx), dest)
-	if err != nil {
-		return nil, err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return nil, pgerr
 	}
 
 	return dest, nil
@@ -131,8 +134,9 @@ func (p *pollsPgx) GetActivePolls(
 			AND(Polls.GuildID.EQ(postgres.Int64(discordGuildId))).
 			AND(Polls.AuthorID.EQ(postgres.Int64(discordAuthorId))),
 	).QueryContext(ctx, p.txGetter.DefaultTxOrDB(ctx), &dest)
-	if err != nil {
-		return nil, err
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return nil, pgerr
 	}
 
 	return dest, nil
@@ -156,8 +160,9 @@ func (p *pollsPgx) TryAddVote(
 	).RETURNING(
 		PollVotes.AllColumns,
 	).QueryContext(ctx, p.txGetter.DefaultTxOrDB(ctx), dest)
-	if err != nil {
-		return nil, err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return nil, pgerr
 	}
 
 	return dest, nil
@@ -181,8 +186,9 @@ func (p *pollsPgx) CreatePollMessage(
 	).RETURNING(
 		PollMessages.AllColumns,
 	).QueryContext(ctx, p.txGetter.DefaultTxOrDB(ctx), dest)
-	if err != nil {
-		return nil, err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return nil, pgerr
 	}
 
 	return dest, nil
@@ -200,8 +206,9 @@ func (p *pollsPgx) UpdatePollStatus(
 	).WHERE(
 		Polls.ID.EQ(postgres.Int(int64(pollId))),
 	).ExecContext(ctx, p.txGetter.DefaultTxOrDB(ctx))
-	if err != nil {
-		return err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return pgerr
 	}
 
 	return nil
@@ -223,8 +230,9 @@ func (p *pollsPgx) AddPollOption(
 	).RETURNING(
 		PollOptions.AllColumns,
 	).QueryContext(ctx, p.txGetter.DefaultTxOrDB(ctx), dest)
-	if err != nil {
-		return nil, err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return nil, pgerr
 	}
 
 	return dest, nil
@@ -239,8 +247,9 @@ func (p *pollsPgx) RemovePollOption(
 		WHERE(
 			PollOptions.ID.EQ(postgres.Int(int64(optionId))),
 		).ExecContext(ctx, p.txGetter.DefaultTxOrDB(ctx))
-	if err != nil {
-		return err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return pgerr
 	}
 
 	return nil

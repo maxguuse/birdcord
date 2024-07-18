@@ -8,6 +8,7 @@ import (
 
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/liverole/repository"
+	"github.com/maxguuse/birdcord/libs/jet/pgerrors"
 	"github.com/maxguuse/birdcord/libs/jet/txmanager"
 	"github.com/samber/lo"
 )
@@ -43,11 +44,12 @@ func (s *Service) Add(ctx context.Context, r *AddLiveRoleRequest) error {
 		int64(guildId),
 		int64(roleId),
 	)
-	if err != nil {
-		if errors.Is(err, repository.ErrRoleAlreadyExists) {
-			return ErrRoleAlreadyExists
-		}
 
+	if errors.Is(err, pgerrors.ErrDuplicateKey) {
+		return ErrRoleAlreadyExists
+	}
+
+	if err != nil {
 		return errors.Join(domain.ErrInternal, err)
 	}
 

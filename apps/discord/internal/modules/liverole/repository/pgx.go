@@ -6,6 +6,7 @@ import (
 	"github.com/go-jet/jet/v2/postgres"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
 	. "github.com/maxguuse/birdcord/libs/jet/generated/birdcord/public/table"
+	"github.com/maxguuse/birdcord/libs/jet/pgerrors"
 	"github.com/maxguuse/birdcord/libs/jet/txmanager"
 	"github.com/samber/lo"
 	"go.uber.org/fx"
@@ -41,8 +42,9 @@ func (l *liverolePgx) CreateLiverole(
 		discordRoleId,
 		discordGuildId,
 	).ExecContext(ctx, l.txGetter.DefaultTxOrDB(ctx))
-	if err != nil {
-		return err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return pgerr
 	}
 
 	return nil
@@ -64,8 +66,9 @@ func (l *liverolePgx) GetLiveroles(
 	err := liveroleSelect.WHERE(
 		Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId)),
 	).QueryContext(ctx, l.txGetter.DefaultTxOrDB(ctx), &liveroles)
-	if err != nil {
-		return nil, err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return nil, pgerr
 	}
 
 	return liveroles, nil
@@ -81,8 +84,9 @@ func (l *liverolePgx) GetLiverole(
 		Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId)).
 			AND(Liveroles.DiscordRoleID.EQ(postgres.Int64(discordRoleId))),
 	).QueryContext(ctx, l.txGetter.DefaultTxOrDB(ctx), liverole)
-	if err != nil {
-		return nil, err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return nil, pgerr
 	}
 
 	return liverole, nil
@@ -101,8 +105,9 @@ func (l *liverolePgx) DeleteLiveroles(
 		Liveroles.DiscordRoleID.IN(rolesExpr...).
 			AND(Liveroles.DiscordGuildID.EQ(postgres.Int64(discordGuildId))),
 	).ExecContext(ctx, l.txGetter.DefaultTxOrDB(ctx))
-	if err != nil {
-		return err // TODO: Wrap error
+
+	if pgerr := pgerrors.PgErrorOrErr(err); pgerr != nil {
+		return pgerr
 	}
 
 	return nil
