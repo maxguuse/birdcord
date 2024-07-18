@@ -35,6 +35,6 @@ func (c *Client) registerLogger() {
 			return
 		}
 
-		_ = c.logger.Handler().Handle(context.Background(), r)
+		_ = c.logger.Handler().Handle(context.Background(), r) //nolint: errcheck
 	}
 }
