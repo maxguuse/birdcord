@@ -1,14 +1,7 @@
 package client
 
 import (
-	"context"
-	"log/slog"
-	"strconv"
-
-	"github.com/avast/retry-go/v4"
 	"github.com/bwmarrin/discordgo"
-	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
-	"github.com/samber/lo"
 )
 
 func (c *Client) registerHandlers() {
@@ -26,76 +19,4 @@ func (c *Client) onConnect(_ *discordgo.Session, _ *discordgo.Connect) {
 
 func (c *Client) onDisconnect(_ *discordgo.Session, _ *discordgo.Disconnect) {
 	c.logger.Info("Bot is disconnected!")
-}
-
-func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpdate) {
-	if u.User.Bot {
-		return
-	}
-
-	ctx := context.Background()
-
-	isStreaming := lo.SomeBy(u.Activities, func(a *discordgo.Activity) bool {
-		return a.Type == discordgo.ActivityTypeStreaming
-	})
-
-	guildId, err := strconv.Atoi(u.GuildID)
-	if err != nil {
-		c.logger.Error("could not convert guild id from string to int",
-			slog.Any("error", err),
-			slog.String("guild_id", u.GuildID),
-		)
-
-		return
-	}
-
-	roles, err := c.lrRepo.GetLiveroles(ctx, int64(guildId))
-	if err != nil {
-		c.logger.Warn("could not get liveroles from db", err)
-
-		return
-	}
-
-	var member *discordgo.Member
-	err = retry.Do(func() error {
-		m, err := c.router.Session().GuildMember(u.GuildID, u.User.ID)
-		if err != nil {
-			return err
-		}
-
-		member = m
-
-		return nil
-	},
-		retry.Attempts(5),
-	)
-	if err != nil {
-		c.logger.Error("failed to fetch member from discord",
-			slog.Any("error", err),
-			slog.String("guild", u.GuildID),
-		)
-
-		return
-	}
-
-	liverolesIds := lo.Map(roles, func(role *domain.Liverole, _ int) string { return strconv.Itoa(role.DiscordRoleID) })
-	memberRolesIds := member.Roles
-
-	if isStreaming {
-		for _, role := range roles {
-			err = c.router.Session().GuildMemberRoleAdd(u.GuildID, u.User.ID, strconv.Itoa(role.DiscordRoleID))
-			if err != nil {
-				c.logger.Error("could not add role", err)
-			}
-		}
-	} else {
-		for _, liveroleId := range liverolesIds {
-			if !isStreaming && lo.Contains(memberRolesIds, liveroleId) {
-				err = c.router.Session().GuildMemberRoleRemove(u.GuildID, u.User.ID, liveroleId)
-				if err != nil {
-					c.logger.Error("could not remove role", err)
-				}
-			}
-		}
-	}
 }

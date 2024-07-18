@@ -37,7 +37,9 @@ jobs:
           echo "CONNECTION_STRING=${{ secrets.CONNECTION_STRING }}" >> .env
           echo "ADMINER_DEFAULT_SERVER=${{ vars.ADMINER_DEFAULT_SERVER }}" >> .env
           echo "ADMINER_PLUGINS=enum-types" >> .env
-
+          echo "REDIS_DSN=${{ secrets.REDIS_DSN }}" >> .env
+          echo "REDIS_PASS=${{ secrets.REDIS_PASS }}" >> .env
+          echo "REDIS_ARGS=${{ secrets.REDIS_ARGS }}" >> .env
       - name: Copy compose file and .env
         uses: appleboy/scp-action@v0.1.7
         with:
