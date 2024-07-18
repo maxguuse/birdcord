@@ -40,6 +40,12 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 	})
 
 	guildId, err := strconv.Atoi(u.GuildID)
+	if err != nil {
+		c.logger.Error("could not convert guild id from string to int",
+			slog.Any("error", err),
+			slog.String("guild_id", u.GuildID),
+		)
+	}
 
 	roles, err := c.lrRepo.GetLiveroles(ctx, int64(guildId))
 	if err != nil {
