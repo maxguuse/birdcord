@@ -49,16 +49,18 @@ func New(opts ClientOpts) error {
 		lrRepo: opts.LiverolesRepo,
 	}
 
-	router.Use(func(hf disroute.HandlerFunc) disroute.HandlerFunc {
-		return func(ctx *disroute.Ctx) disroute.Response {
-			c.logger.Debug("interaction",
-				slog.String("type", ctx.Interaction().Type.String()),
-				slog.String("id", ctx.Interaction().ID),
-				slog.String("user", ctx.Interaction().Member.User.GlobalName))
+	if opts.Cfg.Environment != "prod" {
+		router.Use(func(hf disroute.HandlerFunc) disroute.HandlerFunc {
+			return func(ctx *disroute.Ctx) disroute.Response {
+				c.logger.Debug("interaction",
+					slog.String("type", ctx.Interaction().Type.String()),
+					slog.String("id", ctx.Interaction().ID),
+					slog.String("user", ctx.Interaction().Member.User.GlobalName))
 
-			return hf(ctx)
-		}
-	})
+				return hf(ctx)
+			}
+		})
+	}
 
 	router.Use(func(hf disroute.HandlerFunc) disroute.HandlerFunc {
 		return func(ctx *disroute.Ctx) disroute.Response {

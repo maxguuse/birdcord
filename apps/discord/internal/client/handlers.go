@@ -45,11 +45,15 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 			slog.Any("error", err),
 			slog.String("guild_id", u.GuildID),
 		)
+
+		return
 	}
 
 	roles, err := c.lrRepo.GetLiveroles(ctx, int64(guildId))
 	if err != nil {
-		c.logger.Error("could not give streaming role", err)
+		c.logger.Warn("could not get liveroles from db", err)
+
+		return
 	}
 
 	var member *discordgo.Member
@@ -83,10 +87,6 @@ func (c *Client) onStatusChanged(_ *discordgo.Session, u *discordgo.PresenceUpda
 			if err != nil {
 				c.logger.Error("could not add role", err)
 			}
-			c.logger.Debug("Role added",
-				slog.Int("role", role.DiscordRoleID),
-				slog.String("user", u.Presence.User.ID),
-			)
 		}
 	} else {
 		for _, liveroleId := range liverolesIds {
