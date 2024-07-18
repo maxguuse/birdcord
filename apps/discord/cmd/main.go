@@ -14,7 +14,7 @@ import (
 
 func main() {
 	fx.New(
-		// fx.NopLogger,
+		fx.NopLogger,
 		fx.Provide(
 			func() context.Context {
 				return context.Background()
