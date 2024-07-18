@@ -10,13 +10,24 @@ services:
       - birdcord-dev
   adminer-dev:
     image: adminer
+    restart: unless-stopped
     ports:
-      - '50052:8080'
+      - "50052:8080"
     env_file:
       - dev.env
     networks:
       - birdcord-dev
-  
+  redis-dev:
+    image: redis/redis-stack:latest
+    restart: unless-stopped
+    ports:
+      - "50053:6379"
+      - "50054:8001"
+    env_file:
+      - dev.env
+    networks:
+      - birdcord-dev
+
 networks:
   birdcord-dev:
     driver: bridge

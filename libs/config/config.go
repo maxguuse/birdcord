@@ -14,6 +14,9 @@ type Config struct {
 	DiscordId    string `env:"DISCORD_ID"`
 
 	ConnectionString string `env:"CONNECTION_STRING"`
+
+	RedisDSN      string `env:"REDIS_DSN"`
+	RedisPassword string `env:"REDIS_PASS"`
 }
 
 func New() *Config {
