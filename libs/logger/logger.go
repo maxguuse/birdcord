@@ -30,12 +30,12 @@ func New(service string) func() Logger {
 	}
 }
 
-func newLogger(service string) Logger {
+func newLogger(service string) Logger { //nolint: ireturn
 	var log *slog.Logger
 
 	replaceAttr := func(groups []string, attr slog.Attr) slog.Attr {
 		if attr.Key == slog.SourceKey {
-			source := attr.Value.Any().(*slog.Source)
+			source := attr.Value.Any().(*slog.Source) //nolint: forcetypeassert
 
 			pathParts := strings.Split(source.File, "/")
 			p := pathParts[len(pathParts)-4:]
@@ -58,7 +58,7 @@ func newLogger(service string) Logger {
 			slog.NewJSONHandler(
 				os.Stdout,
 				&slog.HandlerOptions{
-					Level:       slog.LevelError,
+					Level:       slog.LevelWarn,
 					AddSource:   true,
 					ReplaceAttr: replaceAttr,
 				},
@@ -93,11 +93,20 @@ func (c *logger) handle(level slog.Level, input string, fields ...any) {
 	for _, f := range fields {
 		r.Add(f)
 	}
-	_ = c.log.Handler().Handle(context.Background(), r)
+
+	if !c.log.Handler().Enabled(context.Background(), level) {
+		return
+	}
+
+	_ = c.log.Handler().Handle(context.Background(), r) //nolint: errcheck
 }
 
 func (c *logger) Info(input string, fields ...any) {
 	c.handle(slog.LevelInfo, input, fields...)
+}
+
+func (c *logger) Warn(input string, fields ...any) {
+	c.handle(slog.LevelWarn, input, fields...)
 }
 
 func (c *logger) Error(input string, fields ...any) {
