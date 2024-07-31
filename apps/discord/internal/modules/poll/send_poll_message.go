@@ -3,7 +3,10 @@ package poll
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/maxguuse/birdcord/apps/discord/internal/domain"
@@ -17,7 +20,7 @@ func (h *Handler) sendPollMessage(
 	ctx *disroute.Ctx,
 	poll *domain.PollWithDetails,
 ) error {
-	actionRows := h.buildActionRows(poll, ctx.Interaction().ID)
+	actionRows := buildActionRows(poll, ctx.Interaction().ID)
 	pollEmbed := buildPollEmbed(poll, ctx.Interaction().Member.User)
 
 	msg, err := ctx.Session().ChannelMessageSendComplex(ctx.Interaction().ChannelID, &discordgo.MessageSend{
@@ -53,7 +56,7 @@ type UpdatePollMessageData struct {
 func (h *Handler) updatePollMessages(data *UpdatePollMessageData) error {
 	actionRows := lo.
 		If(data.stop, make([]discordgo.MessageComponent, 0)).
-		Else(h.buildActionRows(data.poll, data.ctx.Interaction().ID))
+		Else(buildActionRows(data.poll, data.ctx.Interaction().ID))
 
 	author, err := data.ctx.Session().User(strconv.Itoa(data.poll.AuthorID))
 	if err != nil {
@@ -89,7 +92,7 @@ func (h *Handler) updatePollMessages(data *UpdatePollMessageData) error {
 	return nil
 }
 
-func (h *Handler) buildActionRows(
+func buildActionRows(
 	poll *domain.PollWithDetails,
 	interactionID string,
 ) []discordgo.MessageComponent {
@@ -110,4 +113,69 @@ func (h *Handler) buildActionRows(
 	})
 
 	return actionRows
+}
+
+const (
+	VOTES_BAR_BLOCK = "■"
+	VOTES_BAR_SPACE = " "
+)
+
+func buildPollEmbed(
+	poll *domain.PollWithDetails,
+	user *discordgo.User,
+) []*discordgo.MessageEmbed {
+	totalVotes := len(poll.Votes)
+
+	optionsList := lo.Map(poll.Options, func(option domain.PollOption, i int) string {
+		return fmt.Sprintf("**%d**. %s", i+1, option.Title)
+	})
+
+	optionsPercentageBars := lo.Map(poll.Options, func(option domain.PollOption, i int) string {
+		votesForOption := lo.CountBy(poll.Votes, func(vote domain.PollVote) bool {
+			return vote.OptionID == option.ID
+		})
+
+		percentage := (float64(votesForOption) / float64(totalVotes)) * 100
+		if math.IsNaN(percentage) {
+			percentage = 0
+		}
+
+		t := math.Ceil(percentage)
+		t2 := int(math.Floor(t / 3.33))
+
+		if t2 < 0 {
+			t2 = 0
+		}
+
+		bar := strings.Repeat(VOTES_BAR_BLOCK, t2) + strings.Repeat(VOTES_BAR_SPACE, 30-t2)
+
+		return fmt.Sprintf("(%d) | %s | (%d%%)", i+1, bar, int(t))
+	})
+
+	optionsListDesc := strings.Join(optionsList, "\n")
+	optionsBarsDesc := strings.Join(optionsPercentageBars, "\n")
+
+	return []*discordgo.MessageEmbed{
+		{
+			Title:       poll.Title,
+			Description: optionsListDesc + "\n```" + optionsBarsDesc + "```",
+			Timestamp:   poll.CreatedAt.Format(time.RFC3339),
+			Color:       0x4d58d3,
+			Type:        discordgo.EmbedTypeRich,
+			Author: &discordgo.MessageEmbedAuthor{
+				Name:    user.Username,
+				IconURL: user.AvatarURL(""),
+			},
+			Footer: &discordgo.MessageEmbedFooter{
+				Text: fmt.Sprint("Poll ID: ", poll.ID),
+			},
+			Fields: []*discordgo.MessageEmbedField{
+				{
+					Name:   "Всего голосов",
+					Value:  strconv.Itoa(totalVotes),
+					Inline: true,
+				},
+			},
+		},
+	}
 }
