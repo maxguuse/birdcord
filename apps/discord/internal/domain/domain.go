@@ -46,3 +46,11 @@ type Liverole struct {
 	DiscordRoleID  int `alias:"liveroles.discord_role_id"`
 	DiscordGuildID int `alias:"liveroles.discord_guild_id"`
 }
+
+type TempvoiceHub struct {
+	ID                int
+	DiscordChannelID  int
+	DiscordGuildID    int
+	TempvoiceTemplate string
+	TempvoiceCategory int
+}
