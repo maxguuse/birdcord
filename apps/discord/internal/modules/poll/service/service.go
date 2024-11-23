@@ -43,7 +43,10 @@ func (s *Service) GetPoll(ctx context.Context, r *GetPollRequest) (*domain.PollW
 	return poll, nil
 }
 
-func (s *Service) GetActivePolls(ctx context.Context, r *GetActivePollsRequest) ([]*domain.Poll, error) {
+func (s *Service) GetActivePolls(
+	ctx context.Context,
+	r *GetActivePollsRequest,
+) ([]*domain.Poll, error) {
 	guildId, err := strconv.Atoi(r.GuildID)
 	if err != nil {
 		return nil, err
@@ -146,7 +149,10 @@ func (s *Service) Stop(ctx context.Context, r *StopRequest) (*StopResponse, erro
 	return resp, nil
 }
 
-func (s *Service) AddOption(ctx context.Context, r *AddOptionRequest) (*domain.PollWithDetails, error) {
+func (s *Service) AddOption(
+	ctx context.Context,
+	r *AddOptionRequest,
+) (*domain.PollWithDetails, error) {
 	result := &domain.PollWithDetails{}
 
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {
@@ -187,7 +193,10 @@ func (s *Service) AddOption(ctx context.Context, r *AddOptionRequest) (*domain.P
 	return result, nil
 }
 
-func (s *Service) RemoveOption(ctx context.Context, r *RemoveOptionRequest) (*domain.PollWithDetails, error) {
+func (s *Service) RemoveOption(
+	ctx context.Context,
+	r *RemoveOptionRequest,
+) (*domain.PollWithDetails, error) {
 	result := &domain.PollWithDetails{}
 
 	err := s.txManager.Do(ctx, func(ctx context.Context) error {

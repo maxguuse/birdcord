@@ -27,7 +27,6 @@ services:
       - dev.env
     networks:
       - birdcord-dev
-
 networks:
   birdcord-dev:
     driver: bridge

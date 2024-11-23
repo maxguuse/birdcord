@@ -28,7 +28,7 @@ const (
 
 type Handler struct {
 	logger  logger.Logger
-	Service *service.Service
+	service *service.Service
 }
 
 type HandlerOpts struct {
@@ -41,7 +41,7 @@ type HandlerOpts struct {
 func NewHandler(opts HandlerOpts) *Handler {
 	h := &Handler{
 		logger:  opts.Log,
-		Service: opts.Service,
+		service: opts.Service,
 	}
 
 	return h
@@ -68,11 +68,14 @@ func (h *Handler) Register(router *disroute.Router) {
 		}
 	})
 
-	router.HandleComponent("configure-tempvoice-hub-select-menu", func(c *disroute.Ctx) disroute.Response {
-		h.logger.Error("not implemented")
+	router.HandleComponent(
+		"configure-tempvoice-hub-select-menu",
+		func(c *disroute.Ctx) disroute.Response {
+			h.logger.Error("not implemented")
 
-		return disroute.Response{
-			Err: errors.New("not implemented"),
-		}
-	})
+			return disroute.Response{
+				Err: errors.New("not implemented"),
+			}
+		},
+	)
 }

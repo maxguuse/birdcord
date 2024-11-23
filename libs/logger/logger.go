@@ -32,12 +32,12 @@ func New(service string) func() Logger {
 	}
 }
 
-func newLogger(service string) Logger { //nolint: ireturn
+func newLogger(service string) Logger {
 	var log *slog.Logger
 
 	replaceAttr := func(groups []string, attr slog.Attr) slog.Attr {
 		if attr.Key == slog.SourceKey {
-			source := attr.Value.Any().(*slog.Source) //nolint: forcetypeassert
+			source := attr.Value.Any().(*slog.Source)
 
 			pathParts := strings.Split(source.File, "/")
 			p := pathParts[len(pathParts)-4:]

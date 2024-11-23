@@ -10,6 +10,13 @@ var (
 	EnvProduction = "prod"
 )
 
+type GetStubbed struct {
+}
+
+func (GetStubbed) Read(p []byte) (n int, err error) {
+	panic("not implemented") // TODO: Implement
+}
+
 type Config struct {
 	Environment string `env:"ENVIRONMENT"`
 	Version     string `env:"VERSION"`

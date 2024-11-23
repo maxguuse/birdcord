@@ -51,7 +51,9 @@ func (p *pollsPgx) CreatePoll(
 				title,
 				discordAuthorId,
 				discordGuildId,
-			).RETURNING(Polls.AllColumns),
+			).RETURNING(
+				Polls.AllColumns,
+			),
 		),
 		insertedPollOptions.AS(
 			PollOptions.INSERT(

@@ -1,12 +1,13 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
-
 vars:
   PROJECT: github.com/maxguuse/birdcord
-
 dotenv:
   - "dev.env"
-
 tasks:
+  run:
+    desc: "Run project"
+    cmd: go run apps/discord/cmd/main.go
   dev-migrate-up:
     desc: "Run migrations for development DB up"
     aliases:
@@ -27,7 +28,7 @@ tasks:
     internal: true
     cmd: goose -dir libs/migrations/migrations postgres {{.CONNECTION_STRING}} {{.DIRECTION}}
   migration:
-    cmds: 
+    cmds:
       - goose -dir libs/migrations/migrations create {{.CLI_ARGS}}
       - goose -dir libs/migrations/migrations fix
   generate-jet:
@@ -36,7 +37,4 @@ tasks:
       - gen-jet
       - jet
     cmds:
-      - jet 
-        -dsn={{.CONNECTION_STRING}}
-        -ignore-tables=goose_db_version
-        -path=./libs/jet/generated
+      - jet -dsn={{.CONNECTION_STRING}} -ignore-tables=goose_db_version -path=./libs/jet/generated

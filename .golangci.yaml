@@ -3,7 +3,7 @@ run:
   concurrency: 1
   tests: false
   allow-parallel-runners: false
-  go: '1.21'
+  go: '1.22'
 linters-settings:
   errcheck:
     check-blank: true
@@ -43,7 +43,7 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-    
+
     - bodyclose
     - containedctx
     - contextcheck
