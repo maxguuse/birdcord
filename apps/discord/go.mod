@@ -11,7 +11,6 @@ require (
 	github.com/redis/go-redis/v9 v9.5.4
 	github.com/samber/lo v1.39.0
 	go.uber.org/fx v1.20.1
-	golang.org/x/sync v0.6.0
 )
 
 require (
@@ -33,6 +32,7 @@ require (
 	golang.org/x/crypto v0.20.0 // indirect
 	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb // indirect
 	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
