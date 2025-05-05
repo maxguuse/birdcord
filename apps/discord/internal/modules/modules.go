@@ -2,7 +2,6 @@ package modules
 
 import (
 	"github.com/maxguuse/birdcord/apps/discord/internal/modules/liverole"
-	"github.com/maxguuse/birdcord/apps/discord/internal/modules/poll"
 	"github.com/maxguuse/disroute"
 	"go.uber.org/fx"
 )
@@ -18,14 +17,12 @@ type Handler struct {
 type HandlerOpts struct {
 	fx.In
 
-	PollHandler     *poll.Handler
 	LiveroleHandler *liverole.Handler
 }
 
 func New(opts HandlerOpts) *Handler {
 	return &Handler{
 		Modules: []Module{
-			opts.PollHandler,
 			opts.LiveroleHandler,
 		},
 	}
@@ -38,7 +35,6 @@ func (h *Handler) Register(router *disroute.Router) {
 }
 
 var NewFx = fx.Options(
-	poll.NewFx,
 	liverole.NewFx,
 
 	fx.Provide(
